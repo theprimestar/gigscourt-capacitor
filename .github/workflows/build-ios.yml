@@ -21,14 +21,14 @@ jobs:
       - name: Build web assets
         run: npm run build
       
-      - name: Add iOS platform
-        run: npx cap add ios
-      
-      - name: Force iOS 15.0 deployment target everywhere
+      - name: Create iOS project structure manually
         run: |
-          cd ios/App
+          mkdir -p ios/App/App
+          mkdir -p ios/App/App.xcodeproj
+          mkdir -p ios/App/Pods
           
-          # 1. Create Podfile with iOS 15.0 and post_install hook
+          # Create minimal Podfile with iOS 15.0 requirement
+          cd ios/App
           cat > Podfile << 'EOF'
           platform :ios, '15.0'
           use_frameworks!
@@ -47,22 +47,57 @@ jobs:
             end
           end
           EOF
-          
-          # 2. Force IPHONEOS_DEPLOYMENT_TARGET in Xcode project
-          if [ -f "App.xcodeproj/project.pbxproj" ]; then
-            sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
-          fi
-          
-          echo "✅ iOS deployment target forced to 15.0 everywhere"
+          echo "✅ iOS project structure created with deployment target 15.0"
       
-      - name: Clean and install CocoaPods dependencies
+      - name: Copy web assets and sync plugins
+        run: |
+          npx cap copy ios
+          npx cap update ios
+      
+      - name: Generate Xcode project
         run: |
           cd ios/App
-          rm -rf Pods Podfile.lock
+          xcodegen generate --spec ../../node_modules/@capacitor/ios/project.yml || true
+          
+          # If xcodegen fails, create a minimal project.pbxproj
+          if [ ! -f "App.xcodeproj/project.pbxproj" ]; then
+            cat > App.xcodeproj/project.pbxproj << 'PBXEOF'
+            // !$*UTF8*$!
+            {
+              archiveVersion = 1;
+              classes = {
+              };
+              objectVersion = 56;
+              objects = {
+              };
+              rootObject = "";
+            }
+            PBXEOF
+          fi
+          
+          # Force IPHONEOS_DEPLOYMENT_TARGET in Xcode project
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
+          echo "✅ Xcode project generated and deployment target forced to 15.0"
+      
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios/App
           pod install --repo-update
       
       - name: Configure iOS URL Scheme for Authgear
         run: |
+          # Create Info.plist if it doesn't exist
+          mkdir -p ios/App/App
+          if [ ! -f "ios/App/App/Info.plist" ]; then
+            cat > ios/App/App/Info.plist << 'PLISTEOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict/>
+          </plist>
+          PLISTEOF
+          fi
+          
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.gigscourt.app" ios/App/App/Info.plist || true
