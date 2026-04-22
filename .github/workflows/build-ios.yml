@@ -24,13 +24,13 @@ jobs:
       - name: Add iOS platform
         run: npx cap add ios
       
-      - name: Create verified Podfile
+      - name: Create verified Podfile with iOS 15.0 target
         run: |
           cd ios/App
           cat > Podfile << 'EOF'
           require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-          platform :ios, '13.0'
+          platform :ios, '15.0'
           use_frameworks!
 
           target 'App' do
@@ -43,7 +43,7 @@ jobs:
             assertDeploymentTarget(installer)
           end
           EOF
-          echo "✅ Verified Podfile created"
+          echo "✅ Verified Podfile created with iOS 15.0 target"
       
       - name: Clean CocoaPods cache and install
         run: |
