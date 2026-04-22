@@ -10,85 +10,117 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 
-// ==================== Wait for DOM ====================
-document.addEventListener('DOMContentLoaded', () => {
-    
-    // ==================== DOM Elements ====================
-    const screens = {
-        welcome: document.getElementById('welcomeScreen'),
-        login: document.getElementById('loginScreen'),
-        signup: document.getElementById('signupScreen')
+console.log('🚀 app.js loaded');
+
+// ==================== DOM Elements (Queried when needed) ====================
+function getElements() {
+    return {
+        screens: {
+            welcome: document.getElementById('welcomeScreen'),
+            login: document.getElementById('loginScreen'),
+            signup: document.getElementById('signupScreen')
+        },
+        loadingOverlay: document.getElementById('loadingOverlay'),
+        loginForm: document.getElementById('loginForm'),
+        signupForm: document.getElementById('signupForm'),
+        loginError: document.getElementById('loginError'),
+        signupError: document.getElementById('signupError'),
+        loginEmail: document.getElementById('loginEmail'),
+        loginPassword: document.getElementById('loginPassword'),
+        signupEmail: document.getElementById('signupEmail'),
+        signupPassword: document.getElementById('signupPassword'),
+        signupConfirmPassword: document.getElementById('signupConfirmPassword'),
+        showLoginBtn: document.getElementById('showLoginBtn'),
+        showSignupBtn: document.getElementById('showSignupBtn')
     };
+}
 
-    const loadingOverlay = document.getElementById('loadingOverlay');
-
-    // Form Elements
-    const loginForm = document.getElementById('loginForm');
-    const signupForm = document.getElementById('signupForm');
-    const loginError = document.getElementById('loginError');
-    const signupError = document.getElementById('signupError');
-
-    // Input Elements
-    const loginEmail = document.getElementById('loginEmail');
-    const loginPassword = document.getElementById('loginPassword');
-    const signupEmail = document.getElementById('signupEmail');
-    const signupPassword = document.getElementById('signupPassword');
-    const signupConfirmPassword = document.getElementById('signupConfirmPassword');
-
-    // Verify all required elements exist
-    if (!screens.welcome || !screens.login || !screens.signup) {
-        console.error('❌ Required DOM elements not found');
-        return;
-    }
-
-    // ==================== Screen Navigation ====================
-    function showScreen(screenId) {
-        Object.values(screens).forEach(screen => {
-            if (screen) screen.classList.remove('active');
-        });
-        if (screens[screenId]) {
-            screens[screenId].classList.add('active');
-        }
-        clearErrors();
-    }
-
-    function clearErrors() {
-        if (loginError) loginError.textContent = '';
-        if (signupError) signupError.textContent = '';
-    }
-
-    // ==================== Loading State ====================
-    function showLoading(message = 'Please wait...') {
-        const loadingText = loadingOverlay?.querySelector('p');
-        if (loadingText) loadingText.textContent = message;
-        if (loadingOverlay) loadingOverlay.classList.add('active');
-    }
-
-    function hideLoading() {
-        if (loadingOverlay) loadingOverlay.classList.remove('active');
-    }
-
-    // ==================== Auth State Observer ====================
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            if (user.emailVerified) {
-                console.log('✅ User is signed in:', user.email);
-                alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
-            } else {
-                console.log('⚠️ User signed in but email not verified');
-                showScreen('welcome');
-            }
-        } else {
-            console.log('👤 No user signed in');
-            showScreen('welcome');
-        }
+// ==================== Screen Navigation ====================
+function showScreen(screenId) {
+    const { screens } = getElements();
+    
+    Object.values(screens).forEach(screen => {
+        if (screen) screen.classList.remove('active');
     });
+    
+    if (screens[screenId]) {
+        screens[screenId].classList.add('active');
+        console.log('✅ Navigated to:', screenId);
+    } else {
+        console.error('❌ Screen not found:', screenId);
+    }
+    
+    // Clear errors
+    const { loginError, signupError } = getElements();
+    if (loginError) loginError.textContent = '';
+    if (signupError) signupError.textContent = '';
+}
 
-    // ==================== Signup Logic ====================
-    if (signupForm) {
-        signupForm.addEventListener('submit', async (e) => {
+// ==================== Loading State ====================
+function showLoading(message = 'Please wait...') {
+    const { loadingOverlay } = getElements();
+    const loadingText = loadingOverlay?.querySelector('p');
+    if (loadingText) loadingText.textContent = message;
+    if (loadingOverlay) loadingOverlay.classList.add('active');
+}
+
+function hideLoading() {
+    const { loadingOverlay } = getElements();
+    if (loadingOverlay) loadingOverlay.classList.remove('active');
+}
+
+// ==================== Attach Event Listeners ====================
+function attachEventListeners() {
+    console.log('📌 Attaching event listeners...');
+    
+    const elements = getElements();
+    
+    // Navigation buttons
+    if (elements.showLoginBtn) {
+        elements.showLoginBtn.addEventListener('click', () => {
+            console.log('🖱️ Login button clicked');
+            showScreen('login');
+        });
+        console.log('✅ Login button listener attached');
+    } else {
+        console.error('❌ Login button not found');
+    }
+    
+    if (elements.showSignupBtn) {
+        elements.showSignupBtn.addEventListener('click', () => {
+            console.log('🖱️ Signup button clicked');
+            showScreen('signup');
+        });
+        console.log('✅ Signup button listener attached');
+    } else {
+        console.error('❌ Signup button not found');
+    }
+    
+    // Back buttons
+    document.querySelectorAll('.back-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            console.log('🖱️ Back button clicked');
+            showScreen('welcome');
+        });
+    });
+    
+    // Data-target buttons
+    document.querySelectorAll('[data-target]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = btn.getAttribute('data-target');
+            if (target === 'loginScreen') showScreen('login');
+            if (target === 'signupScreen') showScreen('signup');
+            if (target === 'welcomeScreen') showScreen('welcome');
+        });
+    });
+    
+    // Signup form
+    if (elements.signupForm) {
+        elements.signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const { signupEmail, signupPassword, signupConfirmPassword, signupError } = getElements();
             const email = signupEmail.value.trim();
             const password = signupPassword.value;
             const confirmPassword = signupConfirmPassword.value;
@@ -119,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await signOut(auth);
                 
                 alert('Account created! Please check your email to verify your account, then log in.');
-                signupForm.reset();
+                elements.signupForm.reset();
                 showScreen('login');
                 
             } catch (error) {
@@ -138,13 +170,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideLoading();
             }
         });
+        console.log('✅ Signup form listener attached');
     }
-
-    // ==================== Login Logic ====================
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
+    
+    // Login form
+    if (elements.loginForm) {
+        elements.loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const { loginEmail, loginPassword, loginError } = getElements();
             const email = loginEmail.value.trim();
             const password = loginPassword.value;
             
@@ -169,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 console.log('✅ Login successful:', user.email);
                 alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
-                loginForm.reset();
+                elements.loginForm.reset();
                 showScreen('welcome');
                 
             } catch (error) {
@@ -181,8 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     loginError.textContent = 'Invalid email address.';
                 } else if (error.code === 'auth/user-disabled') {
                     loginError.textContent = 'This account has been disabled.';
-                } else if (error.code === 'auth/too-many-requests') {
-                    loginError.textContent = 'Too many failed attempts. Please try again later.';
                 } else {
                     loginError.textContent = error.message || 'Login failed. Please try again.';
                 }
@@ -190,37 +222,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideLoading();
             }
         });
+        console.log('✅ Login form listener attached');
     }
+}
 
-    // ==================== Navigation Event Listeners ====================
-    const showLoginBtn = document.getElementById('showLoginBtn');
-    const showSignupBtn = document.getElementById('showSignupBtn');
-    
-    if (showLoginBtn) {
-        showLoginBtn.addEventListener('click', () => {
-            showScreen('login');
-        });
+// ==================== Auth State Observer ====================
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        if (user.emailVerified) {
+            console.log('✅ User is signed in:', user.email);
+        } else {
+            console.log('⚠️ User signed in but email not verified');
+        }
+    } else {
+        console.log('👤 No user signed in');
     }
-    
-    if (showSignupBtn) {
-        showSignupBtn.addEventListener('click', () => {
-            showScreen('signup');
-        });
-    }
-    
-    document.querySelectorAll('[data-target]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const target = btn.getAttribute('data-target');
-            if (target === 'loginScreen') showScreen('login');
-            if (target === 'signupScreen') showScreen('signup');
-            if (target === 'welcomeScreen') showScreen('welcome');
-        });
-    });
-    
-    document.querySelectorAll('.back-btn').forEach(btn => {
-        btn.addEventListener('click', () => showScreen('welcome'));
-    });
-
-    console.log('✅ GigsCourt auth module loaded');
 });
+
+// ==================== Initialize App ====================
+function initializeApp() {
+    console.log('🚀 Initializing GigsCourt...');
+    
+    // Try to attach listeners immediately
+    if (document.readyState === 'loading') {
+        // DOM still loading, wait for it
+        document.addEventListener('DOMContentLoaded', () => {
+            attachEventListeners();
+            showScreen('welcome');
+        });
+    } else {
+        // DOM already ready
+        attachEventListeners();
+        showScreen('welcome');
+    }
+}
+
+// Start the app
+initializeApp();
+
+console.log('✅ GigsCourt module loaded');
