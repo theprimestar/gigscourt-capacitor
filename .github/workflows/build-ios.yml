@@ -21,10 +21,19 @@ jobs:
       - name: Build web assets
         run: npm run build
       
+      - name: Generate iOS project
+        run: npx cap init GigsCourt com.gigscourt.app --web-dir www
+      
       - name: Add iOS platform
         run: npx cap add ios
       
-      - name: Configure Podfile with correct iOS deployment target
+      - name: Clean CocoaPods cache
+        run: |
+          cd ios/App
+          rm -rf Pods Podfile.lock
+          echo "✅ CocoaPods cache cleared"
+      
+      - name: Create verified Podfile
         run: |
           cd ios/App
           cat > Podfile << 'EOF'
@@ -43,15 +52,12 @@ jobs:
             assertDeploymentTarget(installer)
           end
           EOF
-          echo "✅ Official Capacitor Podfile structure created"
+          echo "✅ Verified Podfile created"
       
       - name: Install CocoaPods dependencies
         run: |
           cd ios/App
           pod install --repo-update
-      
-      - name: Sync Capacitor
-        run: npx cap sync ios
       
       - name: Configure iOS URL Scheme for Authgear
         run: |
