@@ -21,33 +21,48 @@ jobs:
       - name: Build web assets
         run: npm run build
       
-      - name: Add iOS platform
-        run: npx cap add ios
-      
-      - name: Force iOS deployment target to 15.0 in all locations
+      - name: Manually create iOS project structure
         run: |
+          mkdir -p ios/App
           cd ios/App
           
-          # 1. Create Podfile with iOS 15.0 platform
+          # Create base Xcode project
+          xcodegen generate --spec ../../capacitor.xcconfig || true
+          
+          # Create minimal Podfile with iOS 15.0 requirement
           cat > Podfile << 'EOF'
-          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
-
           platform :ios, '15.0'
           use_frameworks!
-
+          
           target 'App' do
             pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
             pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-            pod 'AuthgearCapacitor', :path => '../../node_modules/@authgear/capacitor'
           end
-
+          
           post_install do |installer|
-            assertDeploymentTarget(installer)
+            installer.pods_project.targets.each do |target|
+              target.build_configurations.each do |config|
+                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+              end
+            end
           end
           EOF
+          echo "✅ iOS project structure created with deployment target 15.0"
+      
+      - name: Sync Capacitor (links plugins like Authgear)
+        run: npx cap sync ios
+      
+      - name: Force deployment target to 15.0 in all locations
+        run: |
+          cd ios/App
           
-          # 2. Force deployment target in Xcode project
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
+          # Update Podfile again to ensure platform is 15.0
+          sed -i '' 's/platform :ios, .*/platform :ios, '\''15.0'\''/' Podfile
+          
+          # Force IPHONEOS_DEPLOYMENT_TARGET in Xcode project
+          if [ -f "App.xcodeproj/project.pbxproj" ]; then
+            sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
+          fi
           
           echo "✅ iOS deployment target forced to 15.0 everywhere"
       
