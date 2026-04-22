@@ -261,3 +261,110 @@ function initializeApp() {
 initializeApp();
 
 console.log('✅ GigsCourt module loaded');
+
+// ==================== Global Functions for Inline Handlers ====================
+window.handleLogin = async function() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const loginError = document.getElementById('loginError');
+    
+    if (!email || !password) {
+        loginError.textContent = 'Please enter both email and password';
+        return;
+    }
+    
+    // Show loading
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('active');
+    loginError.textContent = '';
+    
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        if (!user.emailVerified) {
+            await signOut(auth);
+            loginError.textContent = 'Please verify your email address before logging in.';
+            overlay.classList.remove('active');
+            return;
+        }
+        
+        console.log('✅ Login successful:', user.email);
+        alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
+        document.getElementById('loginForm').reset();
+        overlay.classList.remove('active');
+        
+        // Navigate to welcome screen
+        document.getElementById('loginScreen').classList.remove('active');
+        document.getElementById('welcomeScreen').classList.add('active');
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            loginError.textContent = 'Incorrect email or password.';
+        } else if (error.code === 'auth/invalid-email') {
+            loginError.textContent = 'Invalid email address.';
+        } else {
+            loginError.textContent = error.message || 'Login failed. Please try again.';
+        }
+        overlay.classList.remove('active');
+    }
+};
+
+window.handleSignup = async function() {
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const confirmPassword = document.getElementById('signupConfirmPassword').value;
+    const signupError = document.getElementById('signupError');
+    
+    if (!email || !password) {
+        signupError.textContent = 'Please enter both email and password';
+        return;
+    }
+    
+    if (password.length < 6) {
+        signupError.textContent = 'Password must be at least 6 characters';
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        signupError.textContent = 'Passwords do not match';
+        return;
+    }
+    
+    // Show loading
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('active');
+    signupError.textContent = '';
+    
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        await sendEmailVerification(user);
+        await signOut(auth);
+        
+        alert('Account created! Please check your email to verify your account, then log in.');
+        document.getElementById('signupForm').reset();
+        overlay.classList.remove('active');
+        
+        // Navigate to login screen
+        document.getElementById('signupScreen').classList.remove('active');
+        document.getElementById('loginScreen').classList.add('active');
+        
+    } catch (error) {
+        console.error('Signup error:', error);
+        if (error.code === 'auth/email-already-in-use') {
+            signupError.textContent = 'This email is already registered.';
+        } else if (error.code === 'auth/invalid-email') {
+            signupError.textContent = 'Invalid email address.';
+        } else if (error.code === 'auth/weak-password') {
+            signupError.textContent = 'Password is too weak.';
+        } else {
+            signupError.textContent = error.message || 'Signup failed. Please try again.';
+        }
+        overlay.classList.remove('active');
+    }
+};
+
+console.log('✅ Global handlers attached');
