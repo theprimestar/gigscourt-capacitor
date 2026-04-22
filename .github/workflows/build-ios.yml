@@ -21,19 +21,24 @@ jobs:
       - name: Build web assets
         run: npm run build
       
-      - name: Add iOS Platform
-        # This creates the standard Capacitor iOS structure correctly
-        run: npx cap add ios
-      
-      - name: Force iOS 15.0 Target
+      - name: Manually create iOS project structure
         run: |
-          # 1. Update the platform line in the Podfile
-          sed -i '' "s/platform :ios, '11.0'/platform :ios, '15.0'/" ios/App/Podfile
+          mkdir -p ios/App
+          cd ios/App
           
-          # 2. Add a post_install hook to the Podfile to force ALL pods to iOS 15.0
-          # This is the most reliable way to fix the Authgear version error
-          cat >> ios/App/Podfile << 'EOF'
-
+          # Create base Xcode project
+          xcodegen generate --spec ../../capacitor.xcconfig || true
+          
+          # Create minimal Podfile with iOS 15.0 requirement
+          cat > Podfile << 'EOF'
+          platform :ios, '15.0'
+          use_frameworks!
+          
+          target 'App' do
+            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          end
+          
           post_install do |installer|
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
@@ -42,38 +47,58 @@ jobs:
             end
           end
           EOF
-          
-      - name: Sync and Update Pods
+          echo "✅ iOS project structure created with deployment target 15.0"
+      
+      - name: Sync Capacitor (links plugins like Authgear)
+        run: npx cap sync ios
+      
+      - name: Force deployment target to 15.0 in all locations
         run: |
-          npx cap sync ios
           cd ios/App
+          
+          # Update Podfile again to ensure platform is 15.0
+          sed -i '' 's/platform :ios, .*/platform :ios, '\''15.0'\''/' Podfile
+          
+          # Force IPHONEOS_DEPLOYMENT_TARGET in Xcode project
+          if [ -f "App.xcodeproj/project.pbxproj" ]; then
+            sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
+          fi
+          
+          echo "✅ iOS deployment target forced to 15.0 everywhere"
+      
+      - name: Clean CocoaPods cache and install
+        run: |
+          cd ios/App
+          rm -rf Pods Podfile.lock
           pod install --repo-update
       
-      - name: Configure Info.plist for Authgear
+      - name: Configure iOS URL Scheme for Authgear
         run: |
-          PLIST="ios/App/App/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" $PLIST || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" $PLIST || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.gigscourt.app" $PLIST || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" $PLIST || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string com.gigscourt.app" $PLIST || true
-
-      - name: Build App Execution
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.gigscourt.app" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string com.gigscourt.app" ios/App/App/Info.plist || true
+          echo "✅ Custom URL scheme configured for Authgear"
+      
+      - name: Build unsigned IPA
         run: |
-          xcodebuild build \
-            -workspace ios/App/App.xcworkspace \
+          cd ios/App
+          xcodebuild clean build \
+            -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath ./build \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
-
-      - name: Package IPA
+      
+      - name: Create IPA
         run: |
           mkdir -p Payload
-          cp -r ./build/Build/Products/Release-iphoneos/App.app Payload/
+          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
           zip -r GigsCourt-iOS.ipa Payload/
       
       - name: Upload IPA
@@ -81,3 +106,4 @@ jobs:
         with:
           name: GigsCourt-iOS
           path: GigsCourt-iOS.ipa
+          retention-days: 30
