@@ -1,4 +1,9 @@
-// GigsCourt App - Supabase Authentication Logic
+// GigsCourt App - Firebase Authentication with Native Persistence
+
+// Import Capacitor plugins
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { Preferences } from '@capacitor/preferences';
 
 // ==================== DOM Elements ====================
 const screens = {
@@ -21,6 +26,12 @@ const loginPassword = document.getElementById('loginPassword');
 const signupEmail = document.getElementById('signupEmail');
 const signupPassword = document.getElementById('signupPassword');
 const signupConfirmPassword = document.getElementById('signupConfirmPassword');
+
+// ==================== Persistent Storage Keys ====================
+const STORAGE_KEYS = {
+    USER: 'gigscourt_user',
+    SESSION: 'gigscourt_session'
+};
 
 // ==================== Screen Navigation ====================
 function showScreen(screenId) {
@@ -49,17 +60,107 @@ function hideLoading() {
     loadingOverlay.classList.remove('active');
 }
 
-// ==================== Check Existing Session ====================
-async function checkSession() {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (session) {
-        console.log('User already logged in:', session.user.email);
-        alert(`Welcome back ${session.user.email}! Onboarding screen coming in Phase 2.`);
+// ==================== Save User to Native Storage ====================
+async function saveUserToNativeStorage(user) {
+    try {
+        await Preferences.set({
+            key: STORAGE_KEYS.USER,
+            value: JSON.stringify({
+                uid: user.uid,
+                email: user.email,
+                emailVerified: user.emailVerified,
+                displayName: user.displayName,
+                photoURL: user.photoURL
+            })
+        });
+        console.log('✅ User saved to native storage');
+    } catch (error) {
+        console.error('❌ Failed to save user to native storage:', error);
     }
 }
 
-// Run on page load
-checkSession();
+// ==================== Get User from Native Storage ====================
+async function getUserFromNativeStorage() {
+    try {
+        const { value } = await Preferences.get({ key: STORAGE_KEYS.USER });
+        if (value) {
+            return JSON.parse(value);
+        }
+    } catch (error) {
+        console.error('❌ Failed to read user from native storage:', error);
+    }
+    return null;
+}
+
+// ==================== Clear Native Storage ====================
+async function clearNativeStorage() {
+    try {
+        await Preferences.remove({ key: STORAGE_KEYS.USER });
+        await Preferences.remove({ key: STORAGE_KEYS.SESSION });
+        console.log('✅ Native storage cleared');
+    } catch (error) {
+        console.error('❌ Failed to clear native storage:', error);
+    }
+}
+
+// ==================== Handle Successful Authentication ====================
+async function handleAuthSuccess(user) {
+    await saveUserToNativeStorage(user);
+    
+    // Sign in to Firebase web layer using the native credential
+    try {
+        const { getAuth, signInWithCredential, GoogleAuthProvider } = await import('firebase/auth');
+        const auth = getAuth();
+        
+        // Get the ID token from the native user
+        const idToken = await FirebaseAuthentication.getIdToken();
+        
+        if (idToken.token) {
+            // Create credential and sign in to web layer
+            const credential = GoogleAuthProvider.credential(idToken.token);
+            await signInWithCredential(auth, credential);
+            console.log('✅ Web layer authenticated');
+        }
+    } catch (error) {
+        console.warn('Web layer sign-in skipped or failed:', error.message);
+        // Continue anyway - native auth is sufficient
+    }
+    
+    console.log('✅ Authentication successful:', user.email);
+    alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
+    showScreen('welcome');
+}
+
+// ==================== Check Existing Session ====================
+async function checkExistingSession() {
+    try {
+        // First, check native storage for a saved user (fast, offline-capable)
+        const savedUser = await getUserFromNativeStorage();
+        
+        if (savedUser) {
+            console.log('📱 Found user in native storage:', savedUser.email);
+        }
+        
+        // Then, verify with Firebase native layer
+        const result = await FirebaseAuthentication.getCurrentUser();
+        
+        if (result.user) {
+            console.log('✅ User is authenticated:', result.user.email);
+            await handleAuthSuccess(result.user);
+        } else if (savedUser) {
+            // User was in storage but not authenticated (session expired)
+            console.log('⚠️ Session expired, clearing storage');
+            await clearNativeStorage();
+            showScreen('welcome');
+        } else {
+            // No user, show welcome screen
+            showScreen('welcome');
+        }
+    } catch (error) {
+        console.error('❌ Session check failed:', error);
+        showScreen('welcome');
+    }
+}
 
 // ==================== Signup Logic ====================
 signupForm.addEventListener('submit', async (e) => {
@@ -88,14 +189,20 @@ signupForm.addEventListener('submit', async (e) => {
     signupError.textContent = '';
 
     try {
-        const { data, error } = await supabase.auth.signUp({
+        // Use native Firebase plugin to create user
+        const result = await FirebaseAuthentication.createUserWithEmailAndPassword({
             email: email,
-            password: password,
+            password: password
         });
         
-        if (error) throw error;
-        
-        if (data.user) {
+        if (result.user) {
+            // Send verification email
+            await FirebaseAuthentication.sendEmailVerification();
+            
+            // Sign out immediately (user must verify email before logging in)
+            await FirebaseAuthentication.signOut();
+            await clearNativeStorage();
+            
             alert('Account created! Please check your email to verify your account, then log in.');
             signupForm.reset();
             showScreen('login');
@@ -103,7 +210,17 @@ signupForm.addEventListener('submit', async (e) => {
         
     } catch (error) {
         console.error('Signup error:', error);
-        signupError.textContent = error.message || 'Signup failed. Please try again.';
+        
+        // Handle specific error codes
+        if (error.code === 'auth/email-already-in-use') {
+            signupError.textContent = 'This email is already registered.';
+        } else if (error.code === 'auth/invalid-email') {
+            signupError.textContent = 'Invalid email address.';
+        } else if (error.code === 'auth/weak-password') {
+            signupError.textContent = 'Password is too weak.';
+        } else {
+            signupError.textContent = error.message || 'Signup failed. Please try again.';
+        }
     } finally {
         hideLoading();
     }
@@ -125,26 +242,38 @@ loginForm.addEventListener('submit', async (e) => {
     loginError.textContent = '';
     
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        // Use native Firebase plugin to sign in
+        const result = await FirebaseAuthentication.signInWithEmailAndPassword({
             email: email,
             password: password
         });
         
-        if (error) throw error;
-        
-        if (data.user) {
-            console.log('Login successful:', data.user.email);
-            alert(`Welcome ${data.user.email}! Onboarding screen coming in Phase 2.`);
+        if (result.user) {
+            if (!result.user.emailVerified) {
+                // Sign out and require verification
+                await FirebaseAuthentication.signOut();
+                await clearNativeStorage();
+                loginError.textContent = 'Please verify your email address before logging in.';
+                hideLoading();
+                return;
+            }
+            
+            await handleAuthSuccess(result.user);
             loginForm.reset();
-            showScreen('welcome');
         }
         
     } catch (error) {
         console.error('Login error:', error);
-        if (error.message.includes('Email not confirmed')) {
-            loginError.textContent = 'Please verify your email address before logging in.';
-        } else if (error.message.includes('Invalid login credentials')) {
+        
+        // Handle specific error codes
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             loginError.textContent = 'Incorrect email or password.';
+        } else if (error.code === 'auth/invalid-email') {
+            loginError.textContent = 'Invalid email address.';
+        } else if (error.code === 'auth/user-disabled') {
+            loginError.textContent = 'This account has been disabled.';
+        } else if (error.code === 'auth/too-many-requests') {
+            loginError.textContent = 'Too many failed attempts. Please try again later.';
         } else {
             loginError.textContent = error.message || 'Login failed. Please try again.';
         }
@@ -152,6 +281,21 @@ loginForm.addEventListener('submit', async (e) => {
         hideLoading();
     }
 });
+
+// ==================== Logout Function (for future use) ====================
+async function logout() {
+    try {
+        showLoading('Signing out...');
+        await FirebaseAuthentication.signOut();
+        await clearNativeStorage();
+        console.log('✅ User signed out');
+        showScreen('welcome');
+    } catch (error) {
+        console.error('Logout error:', error);
+    } finally {
+        hideLoading();
+    }
+}
 
 // ==================== Navigation Event Listeners ====================
 document.getElementById('showLoginBtn').addEventListener('click', () => {
@@ -176,4 +320,19 @@ document.querySelectorAll('.back-btn').forEach(btn => {
     btn.addEventListener('click', () => showScreen('welcome'));
 });
 
-console.log('GigsCourt Supabase auth module loaded');
+// ==================== Initialize App ====================
+async function initializeApp() {
+    console.log('🚀 GigsCourt initializing...');
+    console.log('📱 Platform:', Capacitor.getPlatform());
+    
+    // Add logout to window for debugging
+    window.logout = logout;
+    
+    // Check for existing session
+    await checkExistingSession();
+}
+
+// Start the app
+initializeApp();
+
+console.log('✅ GigsCourt Firebase auth module loaded');
