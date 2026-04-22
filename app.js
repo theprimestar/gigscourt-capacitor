@@ -1,4 +1,4 @@
-// GigsCourt App - Authentication Logic using Capacitor Firebase Plugin
+// GigsCourt App - Authentication Logic
 
 // ==================== DOM Elements ====================
 const screens = {
@@ -6,21 +6,30 @@ const screens = {
     login: document.getElementById('loginScreen'),
     signup: document.getElementById('signupScreen')
 };
+
 const loadingOverlay = document.getElementById('loadingOverlay');
+
+// Form Elements
 const loginForm = document.getElementById('loginForm');
 const signupForm = document.getElementById('signupForm');
 const loginError = document.getElementById('loginError');
 const signupError = document.getElementById('signupError');
+
+// Input Elements
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
 const signupEmail = document.getElementById('signupEmail');
 const signupPassword = document.getElementById('signupPassword');
 const signupConfirmPassword = document.getElementById('signupConfirmPassword');
 
-// ==================== Helper Functions ====================
+// ==================== Screen Navigation ====================
 function showScreen(screenId) {
-    Object.values(screens).forEach(screen => { if (screen) screen.classList.remove('active'); });
-    if (screens[screenId]) screens[screenId].classList.add('active');
+    Object.values(screens).forEach(screen => {
+        if (screen) screen.classList.remove('active');
+    });
+    if (screens[screenId]) {
+        screens[screenId].classList.add('active');
+    }
     clearErrors();
 }
 
@@ -29,6 +38,7 @@ function clearErrors() {
     if (signupError) signupError.textContent = '';
 }
 
+// ==================== Loading State ====================
 function showLoading(message = 'Please wait...') {
     const loadingText = loadingOverlay.querySelector('p');
     if (loadingText) loadingText.textContent = message;
@@ -39,6 +49,7 @@ function hideLoading() {
     loadingOverlay.classList.remove('active');
 }
 
+// ==================== Error Messages ====================
 function getAuthErrorMessage(code) {
     const messages = {
         'auth/invalid-email': 'Invalid email address',
@@ -53,7 +64,7 @@ function getAuthErrorMessage(code) {
     return messages[code] || 'An error occurred. Please try again';
 }
 
-// ==================== Signup Logic (Using Native Plugin) ====================
+// ==================== Signup Logic ====================
 signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -80,7 +91,6 @@ signupForm.addEventListener('submit', async (e) => {
     signupError.textContent = '';
 
     try {
-        // Use Capacitor Firebase plugin to create user
         const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
         
         const result = await FirebaseAuthentication.createUserWithEmailAndPassword({
@@ -88,12 +98,7 @@ signupForm.addEventListener('submit', async (e) => {
             password: password
         });
         
-        const user = result.user;
-        
-        // Send verification email using native plugin
         await FirebaseAuthentication.sendEmailVerification();
-        
-        // Sign out immediately to enforce email verification before use
         await FirebaseAuthentication.signOut();
         
         alert('Account created! Please check your email to verify your account, then log in.');
@@ -101,13 +106,14 @@ signupForm.addEventListener('submit', async (e) => {
         showScreen('login');
         
     } catch (error) {
+        console.error('Signup error:', error);
         signupError.textContent = getAuthErrorMessage(error.code || error.message);
     } finally {
         hideLoading();
     }
 });
 
-// ==================== Login Logic (Using Native Plugin) ====================
+// ==================== Login Logic ====================
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -133,23 +139,48 @@ loginForm.addEventListener('submit', async (e) => {
         const user = result.user;
         
         if (!user.emailVerified) {
-            // If email is not verified, sign them out and show a message
             await FirebaseAuthentication.signOut();
-            alert('Please verify your email address before logging in.');
+            alert('Please verify your email address before logging in. Check your inbox.');
             hideLoading();
             return;
         }
         
-        // User is fully authenticated and email is verified
         console.log('User signed in with verified email:', user.email);
         alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
         loginForm.reset();
         
     } catch (error) {
+        console.error('Login error:', error);
         loginError.textContent = getAuthErrorMessage(error.code || error.message);
     } finally {
         hideLoading();
     }
 });
 
-// ... (The rest of your navigation and utility functions would remain unchanged)
+// ==================== Navigation Event Listeners ====================
+document.getElementById('showLoginBtn').addEventListener('click', () => {
+    showScreen('login');
+});
+
+document.getElementById('showSignupBtn').addEventListener('click', () => {
+    showScreen('signup');
+});
+
+document.querySelectorAll('[data-target]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = btn.getAttribute('data-target');
+        if (target === 'loginScreen') showScreen('login');
+        if (target === 'signupScreen') showScreen('signup');
+        if (target === 'welcomeScreen') showScreen('welcome');
+    });
+});
+
+document.querySelectorAll('.back-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        showScreen('welcome');
+    });
+});
+
+// ==================== Initialize ====================
+console.log('GigsCourt auth module loaded');
