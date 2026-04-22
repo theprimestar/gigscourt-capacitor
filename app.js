@@ -1,7 +1,4 @@
-// GigsCourt App - Authgear Authentication Logic
-
-// Import Authgear configuration
-import { authgearClientID, authgearEndpoint } from './authgear-config.js';
+// GigsCourt App - Supabase Authentication Logic
 
 // ==================== DOM Elements ====================
 const screens = {
@@ -9,37 +6,21 @@ const screens = {
     login: document.getElementById('loginScreen'),
     signup: document.getElementById('signupScreen')
 };
+
 const loadingOverlay = document.getElementById('loadingOverlay');
+
+// Form Elements
+const loginForm = document.getElementById('loginForm');
+const signupForm = document.getElementById('signupForm');
 const loginError = document.getElementById('loginError');
 const signupError = document.getElementById('signupError');
 
-// ==================== Initialize Authgear ====================
-let authgear = null;
-
-async function initAuthgear() {
-    try {
-        const { Authgear } = await import('@authgear/capacitor');
-        
-        authgear = new Authgear({
-            endpoint: authgearEndpoint,
-            clientID: authgearClientID,
-            isThirdPartyWebviewMessageEnabled: false
-        });
-        
-        console.log('✅ Authgear initialized');
-        
-        const sessionState = await authgear.fetchSessionState();
-        if (sessionState === 'AUTHENTICATED') {
-            const userInfo = await authgear.fetchUserInfo();
-            console.log('User already authenticated:', userInfo);
-            alert(`Welcome back ${userInfo.email || 'User'}! Onboarding screen coming in Phase 2.`);
-        }
-    } catch (error) {
-        console.error('❌ Authgear initialization failed:', error);
-    }
-}
-
-initAuthgear();
+// Input Elements
+const loginEmail = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const signupEmail = document.getElementById('signupEmail');
+const signupPassword = document.getElementById('signupPassword');
+const signupConfirmPassword = document.getElementById('signupConfirmPassword');
 
 // ==================== Screen Navigation ====================
 function showScreen(screenId) {
@@ -57,6 +38,7 @@ function clearErrors() {
     if (signupError) signupError.textContent = '';
 }
 
+// ==================== Loading State ====================
 function showLoading(message = 'Please wait...') {
     const loadingText = loadingOverlay.querySelector('p');
     if (loadingText) loadingText.textContent = message;
@@ -67,40 +49,118 @@ function hideLoading() {
     loadingOverlay.classList.remove('active');
 }
 
-// ==================== Auth Flow ====================
-async function startAuthentication() {
-    if (!authgear) {
-        loginError.textContent = 'Authentication service not ready. Please restart the app.';
+// ==================== Check Existing Session ====================
+async function checkSession() {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (session) {
+        console.log('User already logged in:', session.user.email);
+        alert(`Welcome back ${session.user.email}! Onboarding screen coming in Phase 2.`);
+    }
+}
+
+// Run on page load
+checkSession();
+
+// ==================== Signup Logic ====================
+signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = signupEmail.value.trim();
+    const password = signupPassword.value;
+    const confirmPassword = signupConfirmPassword.value;
+    
+    if (!email || !password) {
+        signupError.textContent = 'Please enter both email and password';
         return;
     }
     
-    showLoading('Opening secure login...');
+    if (password.length < 6) {
+        signupError.textContent = 'Password must be at least 6 characters';
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        signupError.textContent = 'Passwords do not match';
+        return;
+    }
+    
+    showLoading('Creating your account...');
+    signupError.textContent = '';
+
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+        });
+        
+        if (error) throw error;
+        
+        if (data.user) {
+            alert('Account created! Please check your email to verify your account, then log in.');
+            signupForm.reset();
+            showScreen('login');
+        }
+        
+    } catch (error) {
+        console.error('Signup error:', error);
+        signupError.textContent = error.message || 'Signup failed. Please try again.';
+    } finally {
+        hideLoading();
+    }
+});
+
+// ==================== Login Logic ====================
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
+    
+    if (!email || !password) {
+        loginError.textContent = 'Please enter both email and password';
+        return;
+    }
+    
+    showLoading('Logging in...');
     loginError.textContent = '';
     
     try {
-        await authgear.authenticate({
-            redirectUri: 'com.gigscourt.app://oauth2redirect',
-            uiLocales: ['en'],
-            colorScheme: 'light'
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
         });
         
-        const userInfo = await authgear.fetchUserInfo();
-        console.log('Authentication successful:', userInfo);
-        alert(`Welcome ${userInfo.email || 'User'}! Onboarding screen coming in Phase 2.`);
+        if (error) throw error;
+        
+        if (data.user) {
+            console.log('Login successful:', data.user.email);
+            alert(`Welcome ${data.user.email}! Onboarding screen coming in Phase 2.`);
+            loginForm.reset();
+            showScreen('welcome');
+        }
         
     } catch (error) {
-        console.error('Authentication error:', error);
-        if (error.message !== 'Cancel') {
-            loginError.textContent = 'Login failed. Please try again.';
+        console.error('Login error:', error);
+        if (error.message.includes('Email not confirmed')) {
+            loginError.textContent = 'Please verify your email address before logging in.';
+        } else if (error.message.includes('Invalid login credentials')) {
+            loginError.textContent = 'Incorrect email or password.';
+        } else {
+            loginError.textContent = error.message || 'Login failed. Please try again.';
         }
     } finally {
         hideLoading();
     }
-}
+});
 
-// ==================== Event Listeners ====================
-document.getElementById('showLoginBtn').addEventListener('click', startAuthentication);
-document.getElementById('showSignupBtn').addEventListener('click', startAuthentication);
+// ==================== Navigation Event Listeners ====================
+document.getElementById('showLoginBtn').addEventListener('click', () => {
+    showScreen('login');
+});
+
+document.getElementById('showSignupBtn').addEventListener('click', () => {
+    showScreen('signup');
+});
 
 document.querySelectorAll('[data-target]').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -116,4 +176,4 @@ document.querySelectorAll('.back-btn').forEach(btn => {
     btn.addEventListener('click', () => showScreen('welcome'));
 });
 
-console.log('GigsCourt Authgear module loaded');
+console.log('GigsCourt Supabase auth module loaded');
