@@ -24,9 +24,11 @@ jobs:
       - name: Add iOS platform
         run: npx cap add ios
       
-      - name: Create verified Podfile with iOS 15.0 target
+      - name: Force iOS deployment target to 15.0 in all locations
         run: |
           cd ios/App
+          
+          # 1. Create Podfile with iOS 15.0 platform
           cat > Podfile << 'EOF'
           require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
@@ -43,7 +45,11 @@ jobs:
             assertDeploymentTarget(installer)
           end
           EOF
-          echo "✅ Verified Podfile created with iOS 15.0 target"
+          
+          # 2. Force deployment target in Xcode project
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
+          
+          echo "✅ iOS deployment target forced to 15.0 everywhere"
       
       - name: Clean CocoaPods cache and install
         run: |
@@ -69,6 +75,7 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath ./build \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
