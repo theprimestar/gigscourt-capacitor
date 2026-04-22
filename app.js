@@ -1,8 +1,7 @@
-// GigsCourt App - Authentication Logic
+// GigsCourt App - Authgear Authentication Logic
 
-// ==================== Plugin State ====================
-let FirebaseAuthentication = null;
-let pluginReady = false;
+// Import Authgear configuration
+import { authgearClientID, authgearEndpoint } from './authgear-config.js';
 
 // ==================== DOM Elements ====================
 const screens = {
@@ -10,53 +9,37 @@ const screens = {
     login: document.getElementById('loginScreen'),
     signup: document.getElementById('signupScreen')
 };
-
 const loadingOverlay = document.getElementById('loadingOverlay');
-
-// Form Elements
-const loginForm = document.getElementById('loginForm');
-const signupForm = document.getElementById('signupForm');
 const loginError = document.getElementById('loginError');
 const signupError = document.getElementById('signupError');
 
-// Input Elements
-const loginEmail = document.getElementById('loginEmail');
-const loginPassword = document.getElementById('loginPassword');
-const signupEmail = document.getElementById('signupEmail');
-const signupPassword = document.getElementById('signupPassword');
-const signupConfirmPassword = document.getElementById('signupConfirmPassword');
+// ==================== Initialize Authgear ====================
+let authgear = null;
 
-// ==================== Initialize Firebase Plugin ====================
-async function initFirebase() {
+async function initAuthgear() {
     try {
-        const module = await import('@capacitor-firebase/authentication');
-        FirebaseAuthentication = module.FirebaseAuthentication;
+        const { Authgear } = await import('@authgear/capacitor');
         
-        // Wait for native SDK to be ready
-        await FirebaseAuthentication.addListener('authStateChange', (user) => {
-            console.log('Auth state changed:', user ? 'User logged in' : 'No user');
+        authgear = new Authgear({
+            endpoint: authgearEndpoint,
+            clientID: authgearClientID,
+            isThirdPartyWebviewMessageEnabled: false
         });
         
-        pluginReady = true;
-        console.log('✅ Firebase Authentication plugin ready');
+        console.log('✅ Authgear initialized');
         
-        // Check current auth state
-        const result = await FirebaseAuthentication.getCurrentUser();
-        if (result.user) {
-            console.log('User already signed in:', result.user.email);
+        const sessionState = await authgear.fetchSessionState();
+        if (sessionState === 'AUTHENTICATED') {
+            const userInfo = await authgear.fetchUserInfo();
+            console.log('User already authenticated:', userInfo);
+            alert(`Welcome back ${userInfo.email || 'User'}! Onboarding screen coming in Phase 2.`);
         }
     } catch (error) {
-        console.error('❌ Firebase plugin initialization failed:', error);
-        // Show error on screen instead of crashing
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#e74c3c;color:white;padding:20px;z-index:9999;';
-        errorDiv.textContent = `Firebase init error: ${error.message}`;
-        document.body.appendChild(errorDiv);
+        console.error('❌ Authgear initialization failed:', error);
     }
 }
 
-// Call initialization immediately
-initFirebase();
+initAuthgear();
 
 // ==================== Screen Navigation ====================
 function showScreen(screenId) {
@@ -74,7 +57,6 @@ function clearErrors() {
     if (signupError) signupError.textContent = '';
 }
 
-// ==================== Loading State ====================
 function showLoading(message = 'Please wait...') {
     const loadingText = loadingOverlay.querySelector('p');
     if (loadingText) loadingText.textContent = message;
@@ -85,139 +67,40 @@ function hideLoading() {
     loadingOverlay.classList.remove('active');
 }
 
-// ==================== Error Messages ====================
-function getAuthErrorMessage(code) {
-    const messages = {
-        'auth/invalid-email': 'Invalid email address',
-        'auth/user-disabled': 'This account has been disabled',
-        'auth/user-not-found': 'No account found with this email',
-        'auth/wrong-password': 'Incorrect password',
-        'auth/email-already-in-use': 'This email is already registered',
-        'auth/weak-password': 'Password must be at least 6 characters',
-        'auth/network-request-failed': 'Network error. Check your connection',
-        'auth/too-many-requests': 'Too many attempts. Try again later'
-    };
-    return messages[code] || 'An error occurred. Please try again';
-}
-
-// ==================== Wait for Plugin Ready ====================
-async function ensurePluginReady() {
-    if (pluginReady && FirebaseAuthentication) {
-        return true;
-    }
-    
-    // Wait up to 5 seconds for plugin to be ready
-    for (let i = 0; i < 50; i++) {
-        if (pluginReady && FirebaseAuthentication) {
-            return true;
-        }
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    throw new Error('Firebase plugin not ready. Please restart the app.');
-}
-
-// ==================== Signup Logic ====================
-signupForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const email = signupEmail.value.trim();
-    const password = signupPassword.value;
-    const confirmPassword = signupConfirmPassword.value;
-    
-    if (!email || !password) {
-        signupError.textContent = 'Please enter both email and password';
+// ==================== Auth Flow ====================
+async function startAuthentication() {
+    if (!authgear) {
+        loginError.textContent = 'Authentication service not ready. Please restart the app.';
         return;
     }
     
-    if (password.length < 6) {
-        signupError.textContent = 'Password must be at least 6 characters';
-        return;
-    }
-    
-    if (password !== confirmPassword) {
-        signupError.textContent = 'Passwords do not match';
-        return;
-    }
-    
-    showLoading('Creating your account...');
-    signupError.textContent = '';
-
-    try {
-        await ensurePluginReady();
-        
-        const result = await FirebaseAuthentication.createUserWithEmailAndPassword({
-            email: email,
-            password: password
-        });
-        
-        await FirebaseAuthentication.sendEmailVerification();
-        await FirebaseAuthentication.signOut();
-        
-        alert('Account created! Please check your email to verify your account, then log in.');
-        signupForm.reset();
-        showScreen('login');
-        
-    } catch (error) {
-        console.error('Signup error:', error);
-        signupError.textContent = getAuthErrorMessage(error.code || error.message);
-    } finally {
-        hideLoading();
-    }
-});
-
-// ==================== Login Logic ====================
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value;
-    
-    if (!email || !password) {
-        loginError.textContent = 'Please enter both email and password';
-        return;
-    }
-    
-    showLoading('Logging in...');
+    showLoading('Opening secure login...');
     loginError.textContent = '';
     
     try {
-        await ensurePluginReady();
-        
-        const result = await FirebaseAuthentication.signInWithEmailAndPassword({
-            email: email,
-            password: password
+        await authgear.authenticate({
+            redirectUri: 'com.gigscourt.app://oauth2redirect',
+            uiLocales: ['en'],
+            colorScheme: 'light'
         });
         
-        const user = result.user;
-        
-        if (!user.emailVerified) {
-            await FirebaseAuthentication.signOut();
-            alert('Please verify your email address before logging in. Check your inbox.');
-            hideLoading();
-            return;
-        }
-        
-        console.log('User signed in with verified email:', user.email);
-        alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
-        loginForm.reset();
+        const userInfo = await authgear.fetchUserInfo();
+        console.log('Authentication successful:', userInfo);
+        alert(`Welcome ${userInfo.email || 'User'}! Onboarding screen coming in Phase 2.`);
         
     } catch (error) {
-        console.error('Login error:', error);
-        loginError.textContent = getAuthErrorMessage(error.code || error.message);
+        console.error('Authentication error:', error);
+        if (error.message !== 'Cancel') {
+            loginError.textContent = 'Login failed. Please try again.';
+        }
     } finally {
         hideLoading();
     }
-});
+}
 
-// ==================== Navigation Event Listeners ====================
-document.getElementById('showLoginBtn').addEventListener('click', () => {
-    showScreen('login');
-});
-
-document.getElementById('showSignupBtn').addEventListener('click', () => {
-    showScreen('signup');
-});
+// ==================== Event Listeners ====================
+document.getElementById('showLoginBtn').addEventListener('click', startAuthentication);
+document.getElementById('showSignupBtn').addEventListener('click', startAuthentication);
 
 document.querySelectorAll('[data-target]').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -230,10 +113,7 @@ document.querySelectorAll('[data-target]').forEach(btn => {
 });
 
 document.querySelectorAll('.back-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        showScreen('welcome');
-    });
+    btn.addEventListener('click', () => showScreen('welcome'));
 });
 
-// ==================== Initialize ====================
-console.log('GigsCourt auth module loaded');
+console.log('GigsCourt Authgear module loaded');
