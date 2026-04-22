@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>GigsCourt</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C0392B">
@@ -12,21 +19,82 @@
 </head>
 <body>
     <div id="app">
-        <div class="container">
-            <div class="logo">
-                <h1>GigsCourt</h1>
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="screen active">
+            <div class="logo-container">
+                <h1 class="app-title">GigsCourt</h1>
+                <p class="app-tagline">Find local gig workers near you</p>
             </div>
-            <div class="status">
-                <div class="checkmark">✓</div>
-                <h2>Foundation Ready</h2>
-                <p>Capacitor • Unsigned Build</p>
-            </div>
-            <div class="info">
-                <p>Your app is working!</p>
-                <p class="small">Built with the proven Capacitor workflow</p>
+            <div class="auth-buttons">
+                <button id="showLoginBtn" class="primary-btn">Login</button>
+                <button id="showSignupBtn" class="secondary-btn">Sign Up</button>
             </div>
         </div>
+
+        <!-- Login Screen -->
+        <div id="loginScreen" class="screen">
+            <div class="screen-header">
+                <button class="back-btn" data-target="welcomeScreen">←</button>
+                <h2>Login</h2>
+                <div></div>
+            </div>
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="primary-btn full-width">Login</button>
+                <p class="form-footer">
+                    Don't have an account? 
+                    <button type="button" class="text-link" data-target="signupScreen">Sign Up</button>
+                </p>
+            </form>
+            <div id="loginError" class="error-message"></div>
+        </div>
+
+        <!-- Signup Screen -->
+        <div id="signupScreen" class="screen">
+            <div class="screen-header">
+                <button class="back-btn" data-target="welcomeScreen">←</button>
+                <h2>Sign Up</h2>
+                <div></div>
+            </div>
+            <form id="signupForm" class="auth-form">
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" placeholder="••••••••" required>
+                    <small class="helper-text">At least 6 characters</small>
+                </div>
+                <div class="form-group">
+                    <label for="signupConfirmPassword">Confirm Password</label>
+                    <input type="password" id="signupConfirmPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="primary-btn full-width">Create Account</button>
+                <p class="form-footer">
+                    Already have an account? 
+                    <button type="button" class="text-link" data-target="loginScreen">Login</button>
+                </p>
+            </form>
+            <div id="signupError" class="error-message"></div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="overlay">
+            <div class="spinner"></div>
+            <p>Please wait...</p>
+        </div>
     </div>
+
+    <!-- App Scripts -->
+    <script src="firebase-config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
