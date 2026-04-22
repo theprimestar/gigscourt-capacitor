@@ -21,18 +21,37 @@ jobs:
       - name: Build web assets
         run: npm run build
       
-      - name: Add iOS platform
-        run: npx cap add ios
+      - name: Add iOS platform (skip pod install)
+        run: npx cap add ios --no-pod-install
       
-      - name: Set iOS deployment target
+      - name: Configure Podfile with correct iOS deployment target
         run: |
           cd ios/App
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 13.0/g' Podfile
-          echo "platform :ios, '13.0'" >> Podfile
-          echo "✅ iOS deployment target set to 13.0"
+          cat > Podfile << 'EOF'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+          platform :ios, '13.0'
+          use_frameworks!
+
+          target 'App' do
+            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+            pod 'AuthgearCapacitor', :path => '../../node_modules/@authgear/capacitor'
+          end
+
+          post_install do |installer|
+            assertDeploymentTarget(installer)
+          end
+          EOF
+          echo "✅ Official Capacitor Podfile structure created"
+      
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios/App
+          pod install --repo-update
       
       - name: Sync Capacitor
-        run: npx cap sync ios
+        run: npx cap sync ios --no-pod-install
       
       - name: Configure iOS URL Scheme for Authgear
         run: |
