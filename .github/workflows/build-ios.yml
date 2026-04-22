@@ -24,12 +24,18 @@ jobs:
       - name: Add iOS platform
         run: npx cap add ios
       
+      - name: Set iOS deployment target
+        run: |
+          cd ios/App
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 13.0/g' Podfile
+          echo "platform :ios, '13.0'" >> Podfile
+          echo "✅ iOS deployment target set to 13.0"
+      
       - name: Sync Capacitor
         run: npx cap sync ios
       
       - name: Configure iOS URL Scheme for Authgear
         run: |
-          # This command injects the custom URL scheme into Info.plist so iOS can redirect back to the app
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.gigscourt.app" ios/App/App/Info.plist || true
