@@ -1,5 +1,9 @@
 // GigsCourt App - Authentication Logic
 
+// ==================== Plugin State ====================
+let FirebaseAuthentication = null;
+let pluginReady = false;
+
 // ==================== DOM Elements ====================
 const screens = {
     welcome: document.getElementById('welcomeScreen'),
@@ -21,6 +25,38 @@ const loginPassword = document.getElementById('loginPassword');
 const signupEmail = document.getElementById('signupEmail');
 const signupPassword = document.getElementById('signupPassword');
 const signupConfirmPassword = document.getElementById('signupConfirmPassword');
+
+// ==================== Initialize Firebase Plugin ====================
+async function initFirebase() {
+    try {
+        const module = await import('@capacitor-firebase/authentication');
+        FirebaseAuthentication = module.FirebaseAuthentication;
+        
+        // Wait for native SDK to be ready
+        await FirebaseAuthentication.addListener('authStateChange', (user) => {
+            console.log('Auth state changed:', user ? 'User logged in' : 'No user');
+        });
+        
+        pluginReady = true;
+        console.log('✅ Firebase Authentication plugin ready');
+        
+        // Check current auth state
+        const result = await FirebaseAuthentication.getCurrentUser();
+        if (result.user) {
+            console.log('User already signed in:', result.user.email);
+        }
+    } catch (error) {
+        console.error('❌ Firebase plugin initialization failed:', error);
+        // Show error on screen instead of crashing
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#e74c3c;color:white;padding:20px;z-index:9999;';
+        errorDiv.textContent = `Firebase init error: ${error.message}`;
+        document.body.appendChild(errorDiv);
+    }
+}
+
+// Call initialization immediately
+initFirebase();
 
 // ==================== Screen Navigation ====================
 function showScreen(screenId) {
@@ -64,6 +100,23 @@ function getAuthErrorMessage(code) {
     return messages[code] || 'An error occurred. Please try again';
 }
 
+// ==================== Wait for Plugin Ready ====================
+async function ensurePluginReady() {
+    if (pluginReady && FirebaseAuthentication) {
+        return true;
+    }
+    
+    // Wait up to 5 seconds for plugin to be ready
+    for (let i = 0; i < 50; i++) {
+        if (pluginReady && FirebaseAuthentication) {
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    throw new Error('Firebase plugin not ready. Please restart the app.');
+}
+
 // ==================== Signup Logic ====================
 signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -91,7 +144,7 @@ signupForm.addEventListener('submit', async (e) => {
     signupError.textContent = '';
 
     try {
-        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        await ensurePluginReady();
         
         const result = await FirebaseAuthentication.createUserWithEmailAndPassword({
             email: email,
@@ -129,7 +182,7 @@ loginForm.addEventListener('submit', async (e) => {
     loginError.textContent = '';
     
     try {
-        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        await ensurePluginReady();
         
         const result = await FirebaseAuthentication.signInWithEmailAndPassword({
             email: email,
