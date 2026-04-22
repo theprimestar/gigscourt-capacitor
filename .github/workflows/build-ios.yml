@@ -21,8 +21,8 @@ jobs:
       - name: Build web assets
         run: npm run build
       
-      - name: Copy web assets to iOS
-        run: npx cap copy ios
+      - name: Add iOS platform
+        run: npx cap add ios
       
       - name: Create verified Podfile
         run: |
@@ -45,15 +45,10 @@ jobs:
           EOF
           echo "✅ Verified Podfile created"
       
-      - name: Clean CocoaPods cache
+      - name: Clean CocoaPods cache and install
         run: |
           cd ios/App
           rm -rf Pods Podfile.lock
-          echo "✅ CocoaPods cache cleared"
-      
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios/App
           pod install --repo-update
       
       - name: Configure iOS URL Scheme for Authgear
