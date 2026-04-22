@@ -1,5 +1,8 @@
 // GigsCourt App - Authentication Logic
 
+// ==================== State Management ====================
+let authStateResolved = false;
+
 // DOM Elements
 const screens = {
     welcome: document.getElementById('welcomeScreen'),
@@ -39,7 +42,9 @@ function clearErrors() {
 }
 
 // ==================== Loading State ====================
-function showLoading() {
+function showLoading(message = 'Please wait...') {
+    const loadingText = loadingOverlay.querySelector('p');
+    if (loadingText) loadingText.textContent = message;
     loadingOverlay.classList.add('active');
 }
 
@@ -47,15 +52,91 @@ function hideLoading() {
     loadingOverlay.classList.remove('active');
 }
 
+// ==================== Email Verification ====================
+async function sendVerificationEmail(user) {
+    try {
+        await user.sendEmailVerification();
+        console.log('Verification email sent to:', user.email);
+        return true;
+    } catch (error) {
+        console.error('Failed to send verification email:', error);
+        return false;
+    }
+}
+
+function showVerificationPendingScreen(email) {
+    // Create a temporary verification pending screen
+    const pendingHtml = `
+        <div id="verificationPendingScreen" class="screen active">
+            <div class="logo-container">
+                <h1 class="app-title">GigsCourt</h1>
+            </div>
+            <div class="auth-form">
+                <div style="text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📧</div>
+                    <h3 style="margin-bottom: 15px; color: #2c3e50;">Verify Your Email</h3>
+                    <p style="color: #718096; margin-bottom: 20px;">
+                        We sent a verification link to<br>
+                        <strong>${email}</strong>
+                    </p>
+                    <p style="color: #a0aec0; font-size: 14px; margin-bottom: 30px;">
+                        Click the link in your email to activate your account.
+                    </p>
+                    <button id="resendVerificationBtn" class="secondary-btn full-width" style="margin-bottom: 10px;">
+                        Resend Email
+                    </button>
+                    <button id="verificationLogoutBtn" class="text-link">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Replace current screens with pending screen
+    const appDiv = document.getElementById('app');
+    const existingPending = document.getElementById('verificationPendingScreen');
+    if (existingPending) existingPending.remove();
+    
+    appDiv.insertAdjacentHTML('beforeend', pendingHtml);
+    
+    // Add event listeners
+    document.getElementById('resendVerificationBtn').addEventListener('click', async () => {
+        const user = auth.currentUser;
+        if (user) {
+            showLoading('Sending verification email...');
+            await sendVerificationEmail(user);
+            hideLoading();
+            alert('Verification email resent!');
+        }
+    });
+    
+    document.getElementById('verificationLogoutBtn').addEventListener('click', async () => {
+        showLoading('Signing out...');
+        await auth.signOut();
+        hideLoading();
+        location.reload();
+    });
+}
+
 // ==================== Auth State Observer ====================
 auth.onAuthStateChanged((user) => {
+    authStateResolved = true;
+    hideLoading();
+    
     if (user) {
-        // User is signed in
-        console.log('User signed in:', user.email);
-        // We'll add home screen navigation here in Phase 2
-        alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
+        // Check if email is verified
+        if (user.emailVerified) {
+            console.log('User signed in with verified email:', user.email);
+            // Onboarding screen coming in Phase 2
+            alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
+        } else {
+            console.log('User signed in but email not verified:', user.email);
+            showVerificationPendingScreen(user.email);
+        }
     } else {
         // User is signed out
+        console.log('User signed out');
         showScreen('welcome');
     }
 });
@@ -72,16 +153,25 @@ loginForm.addEventListener('submit', async (e) => {
         return;
     }
     
-    showLoading();
+    showLoading('Logging in...');
     loginError.textContent = '';
     
     try {
-        await auth.signInWithEmailAndPassword(email, password);
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        if (!user.emailVerified) {
+            showVerificationPendingScreen(user.email);
+        }
         loginForm.reset();
     } catch (error) {
         loginError.textContent = getAuthErrorMessage(error.code);
     } finally {
-        hideLoading();
+        if (!authStateResolved) {
+            // Keep loading if waiting for auth state
+        } else {
+            hideLoading();
+        }
     }
 });
 
@@ -108,15 +198,26 @@ signupForm.addEventListener('submit', async (e) => {
         return;
     }
     
-    showLoading();
+    showLoading('Creating your account...');
     signupError.textContent = '';
+    authStateResolved = false;
     
     try {
-        await auth.createUserWithEmailAndPassword(email, password);
-        signupForm.reset();
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        // Send verification email
+        showLoading('Sending verification email...');
+        const emailSent = await sendVerificationEmail(user);
+        
+        if (emailSent) {
+            signupForm.reset();
+            showVerificationPendingScreen(user.email);
+        } else {
+            signupError.textContent = 'Account created but verification email failed. Try resending.';
+        }
     } catch (error) {
         signupError.textContent = getAuthErrorMessage(error.code);
-    } finally {
         hideLoading();
     }
 });
