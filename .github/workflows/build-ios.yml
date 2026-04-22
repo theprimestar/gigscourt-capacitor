@@ -1,4 +1,4 @@
-name: Build iOS IPA
+name: Build iOS IPA (Unsigned)
 
 on:
   workflow_dispatch:
@@ -21,24 +21,24 @@ jobs:
       - name: Build web assets
         run: npm run build
       
-      - name: Manually create iOS project structure
+      - name: Add iOS platform
+        run: npx cap add ios
+      
+      - name: Force iOS 15.0 deployment target everywhere
         run: |
-          mkdir -p ios/App
           cd ios/App
           
-          # Create base Xcode project
-          xcodegen generate --spec ../../capacitor.xcconfig || true
-          
-          # Create minimal Podfile with iOS 15.0 requirement
+          # 1. Create Podfile with iOS 15.0 and post_install hook
           cat > Podfile << 'EOF'
           platform :ios, '15.0'
           use_frameworks!
-          
+
           target 'App' do
             pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
             pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+            pod 'AuthgearCapacitor', :path => '../../node_modules/@authgear/capacitor'
           end
-          
+
           post_install do |installer|
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
@@ -47,26 +47,15 @@ jobs:
             end
           end
           EOF
-          echo "✅ iOS project structure created with deployment target 15.0"
-      
-      - name: Sync Capacitor (links plugins like Authgear)
-        run: npx cap sync ios
-      
-      - name: Force deployment target to 15.0 in all locations
-        run: |
-          cd ios/App
           
-          # Update Podfile again to ensure platform is 15.0
-          sed -i '' 's/platform :ios, .*/platform :ios, '\''15.0'\''/' Podfile
-          
-          # Force IPHONEOS_DEPLOYMENT_TARGET in Xcode project
+          # 2. Force IPHONEOS_DEPLOYMENT_TARGET in Xcode project
           if [ -f "App.xcodeproj/project.pbxproj" ]; then
             sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
           fi
           
           echo "✅ iOS deployment target forced to 15.0 everywhere"
       
-      - name: Clean CocoaPods cache and install
+      - name: Clean and install CocoaPods dependencies
         run: |
           cd ios/App
           rm -rf Pods Podfile.lock
@@ -99,11 +88,13 @@ jobs:
         run: |
           mkdir -p Payload
           cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
-          zip -r GigsCourt-iOS.ipa Payload/
+          zip -r GigsCourt-iOS-Unsigned.ipa Payload/
+          mkdir -p output
+          mv GigsCourt-iOS-Unsigned.ipa output/
       
-      - name: Upload IPA
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GigsCourt-iOS
-          path: GigsCourt-iOS.ipa
+          name: GigsCourt-iOS-Unsigned
+          path: output/GigsCourt-iOS-Unsigned.ipa
           retention-days: 30
