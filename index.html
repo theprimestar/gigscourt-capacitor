@@ -33,7 +33,7 @@
                 <h2>Login</h2>
                 <div></div>
             </div>
-            <form id="loginForm" class="auth-form">
+            <form id="loginForm" class="auth-form" onsubmit="event.preventDefault(); window.handleLogin(); return false;">
                 <div class="form-group">
                     <label for="loginEmail">Email</label>
                     <input type="email" id="loginEmail" placeholder="your@email.com" required>
@@ -58,7 +58,7 @@
                 <h2>Sign Up</h2>
                 <div></div>
             </div>
-            <form id="signupForm" class="auth-form">
+            <form id="signupForm" class="auth-form" onsubmit="event.preventDefault(); window.handleSignup(); return false;">
                 <div class="form-group">
                     <label for="signupEmail">Email</label>
                     <input type="email" id="signupEmail" placeholder="your@email.com" required>
