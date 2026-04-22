@@ -21,17 +21,8 @@ jobs:
       - name: Build web assets
         run: npm run build
       
-      - name: Generate iOS project
-        run: npx cap init GigsCourt com.gigscourt.app --web-dir www
-      
-      - name: Add iOS platform
-        run: npx cap add ios
-      
-      - name: Clean CocoaPods cache
-        run: |
-          cd ios/App
-          rm -rf Pods Podfile.lock
-          echo "✅ CocoaPods cache cleared"
+      - name: Copy web assets to iOS
+        run: npx cap copy ios
       
       - name: Create verified Podfile
         run: |
@@ -53,6 +44,12 @@ jobs:
           end
           EOF
           echo "✅ Verified Podfile created"
+      
+      - name: Clean CocoaPods cache
+        run: |
+          cd ios/App
+          rm -rf Pods Podfile.lock
+          echo "✅ CocoaPods cache cleared"
       
       - name: Install CocoaPods dependencies
         run: |
