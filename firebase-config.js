@@ -1,4 +1,14 @@
-// Firebase configuration for GigsCourt
+// Firebase Configuration for GigsCourt
+import { Capacitor } from '@capacitor/core';
+import { initializeApp } from 'firebase/app';
+import { 
+  initializeAuth, 
+  indexedDBLocalPersistence, 
+  getAuth 
+} from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+
+// Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAqvDHUPuGtZGMephb3dN_31eruuBXnbFE",
   authDomain: "gigscourt2.firebaseapp.com",
@@ -9,12 +19,25 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 
-// Auth instance for use throughout the app
-const auth = firebase.auth();
+// KEY FIX: Use indexedDBLocalPersistence on native platforms
+// This prevents the infinite spinner issue in Capacitor WebView
+let auth;
+if (Capacitor.isNativePlatform()) {
+  auth = initializeAuth(app, {
+    persistence: indexedDBLocalPersistence
+  });
+  console.log('✅ Firebase Auth initialized with native persistence');
+} else {
+  auth = getAuth(app);
+  console.log('✅ Firebase Auth initialized for web');
+}
 
-// Firestore instance (we'll use this later)
-const db = firebase.firestore();
+// Initialize Firestore
+const db = getFirestore(app);
 
-console.log('Firebase initialized for GigsCourt');
+// Export instances
+export { auth, db };
+
+console.log('✅ Firebase configured for GigsCourt');
