@@ -21,8 +21,8 @@ jobs:
       - name: Build web assets
         run: npm run build
       
-      - name: Add iOS platform (skip pod install)
-        run: npx cap add ios --no-pod-install
+      - name: Add iOS platform
+        run: npx cap add ios
       
       - name: Configure Podfile with correct iOS deployment target
         run: |
@@ -51,7 +51,7 @@ jobs:
           pod install --repo-update
       
       - name: Sync Capacitor
-        run: npx cap sync ios --no-pod-install
+        run: npx cap sync ios
       
       - name: Configure iOS URL Scheme for Authgear
         run: |
