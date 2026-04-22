@@ -9,8 +9,7 @@
     "allowNavigation": [
       "*.firebaseapp.com",
       "*.supabase.co",
-      "*.imagekit.io",
-      "*.authgear.cloud"
+      "*.imagekit.io"
     ]
   },
   "plugins": {
