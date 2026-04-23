@@ -41,7 +41,14 @@ async function initAuthgear() {
                 clientID: AUTHGEAR_CLIENT_ID,
                 isThirdPartyWebviewMessageEnabled: false
             });
-            console.log('✅ Authgear initialized (Capacitor SDK)');
+            
+            // *** THIS IS THE VERIFIED FIX: Call configure() ***
+            await authgear.configure({
+                endpoint: AUTHGEAR_ENDPOINT,
+                clientID: AUTHGEAR_CLIENT_ID,
+            });
+            
+            console.log('✅ Authgear initialized and configured (Capacitor SDK)');
         } else {
             // Web browser environment - use global authgear object
             if (typeof window.authgear === 'undefined') {
@@ -52,7 +59,14 @@ async function initAuthgear() {
                 endpoint: AUTHGEAR_ENDPOINT,
                 clientID: AUTHGEAR_CLIENT_ID
             });
-            console.log('✅ Authgear initialized (Web SDK - Global)');
+            
+            // *** THIS IS THE VERIFIED FIX for Web SDK ***
+            await authgear.configure({
+                endpoint: AUTHGEAR_ENDPOINT,
+                clientID: AUTHGEAR_CLIENT_ID,
+            });
+            
+            console.log('✅ Authgear initialized and configured (Web SDK - Global)');
         }
         
         authgearReady = true;
