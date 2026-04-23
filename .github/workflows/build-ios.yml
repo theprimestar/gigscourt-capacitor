@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-26  # Runner with Xcode 26.4.1 [citation:1][citation:4]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -13,7 +13,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '24' # Capacitor 8 requires Node 22+
       
       - name: Install dependencies
         run: npm install
