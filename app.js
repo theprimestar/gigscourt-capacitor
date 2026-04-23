@@ -1,16 +1,6 @@
-// GigsCourt App - Firebase Authentication Logic
+// GigsCourt App - Global Firebase Version
 
-// Import Firebase
-import { auth } from './firebase-config.js';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,
-  sendEmailVerification,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-
-console.log('🚀 app.js loaded');
+console.log('🚀 GigsCourt app.js loaded');
 
 // ==================== DOM Elements (Queried when needed) ====================
 function getElements() {
@@ -29,34 +19,11 @@ function getElements() {
         loginPassword: document.getElementById('loginPassword'),
         signupEmail: document.getElementById('signupEmail'),
         signupPassword: document.getElementById('signupPassword'),
-        signupConfirmPassword: document.getElementById('signupConfirmPassword'),
-        showLoginBtn: document.getElementById('showLoginBtn'),
-        showSignupBtn: document.getElementById('showSignupBtn')
+        signupConfirmPassword: document.getElementById('signupConfirmPassword')
     };
 }
 
-// ==================== Screen Navigation ====================
-function showScreen(screenId) {
-    const { screens } = getElements();
-    
-    Object.values(screens).forEach(screen => {
-        if (screen) screen.classList.remove('active');
-    });
-    
-    if (screens[screenId]) {
-        screens[screenId].classList.add('active');
-        console.log('✅ Navigated to:', screenId);
-    } else {
-        console.error('❌ Screen not found:', screenId);
-    }
-    
-    // Clear errors
-    const { loginError, signupError } = getElements();
-    if (loginError) loginError.textContent = '';
-    if (signupError) signupError.textContent = '';
-}
-
-// ==================== Loading State ====================
+// ==================== Helper Functions ====================
 function showLoading(message = 'Please wait...') {
     const { loadingOverlay } = getElements();
     const loadingText = loadingOverlay?.querySelector('p');
@@ -69,165 +36,128 @@ function hideLoading() {
     if (loadingOverlay) loadingOverlay.classList.remove('active');
 }
 
-// ==================== Attach Event Listeners ====================
-function attachEventListeners() {
-    console.log('📌 Attaching event listeners...');
+// ==================== Global Handlers (Called from HTML) ====================
+window.handleLogin = async function() {
+    console.log('🔥 handleLogin called');
     
-    const elements = getElements();
+    const { loginEmail, loginPassword, loginError, loginForm, screens } = getElements();
+    const email = loginEmail?.value.trim();
+    const password = loginPassword?.value;
     
-    // Navigation buttons
-    if (elements.showLoginBtn) {
-        elements.showLoginBtn.addEventListener('click', () => {
-            console.log('🖱️ Login button clicked');
-            showScreen('login');
-        });
-        console.log('✅ Login button listener attached');
-    } else {
-        console.error('❌ Login button not found');
+    if (!email || !password) {
+        if (loginError) loginError.textContent = 'Please enter both email and password';
+        return;
     }
     
-    if (elements.showSignupBtn) {
-        elements.showSignupBtn.addEventListener('click', () => {
-            console.log('🖱️ Signup button clicked');
-            showScreen('signup');
-        });
-        console.log('✅ Signup button listener attached');
-    } else {
-        console.error('❌ Signup button not found');
+    showLoading('Logging in...');
+    if (loginError) loginError.textContent = '';
+    
+    try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        if (!user.emailVerified) {
+            await auth.signOut();
+            if (loginError) loginError.textContent = 'Please verify your email address before logging in.';
+            hideLoading();
+            return;
+        }
+        
+        console.log('✅ Login successful:', user.email);
+        alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
+        
+        if (loginForm) loginForm.reset();
+        hideLoading();
+        
+        // Navigate to welcome
+        if (screens.login) screens.login.classList.remove('active');
+        if (screens.welcome) screens.welcome.classList.add('active');
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            if (loginError) loginError.textContent = 'Incorrect email or password.';
+        } else if (error.code === 'auth/invalid-email') {
+            if (loginError) loginError.textContent = 'Invalid email address.';
+        } else if (error.code === 'auth/user-disabled') {
+            if (loginError) loginError.textContent = 'This account has been disabled.';
+        } else {
+            if (loginError) loginError.textContent = error.message || 'Login failed. Please try again.';
+        }
+        hideLoading();
     }
-    
-    // Back buttons
-    document.querySelectorAll('.back-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            console.log('🖱️ Back button clicked');
-            showScreen('welcome');
-        });
-    });
-    
-    // Data-target buttons
-    document.querySelectorAll('[data-target]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const target = btn.getAttribute('data-target');
-            if (target === 'loginScreen') showScreen('login');
-            if (target === 'signupScreen') showScreen('signup');
-            if (target === 'welcomeScreen') showScreen('welcome');
-        });
-    });
-    
-    // Signup form
-    if (elements.signupForm) {
-        elements.signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const { signupEmail, signupPassword, signupConfirmPassword, signupError } = getElements();
-            const email = signupEmail.value.trim();
-            const password = signupPassword.value;
-            const confirmPassword = signupConfirmPassword.value;
-            
-            if (!email || !password) {
-                signupError.textContent = 'Please enter both email and password';
-                return;
-            }
-            
-            if (password.length < 6) {
-                signupError.textContent = 'Password must be at least 6 characters';
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                signupError.textContent = 'Passwords do not match';
-                return;
-            }
-            
-            showLoading('Creating your account...');
-            signupError.textContent = '';
+};
 
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                
-                await sendEmailVerification(user);
-                await signOut(auth);
-                
-                alert('Account created! Please check your email to verify your account, then log in.');
-                elements.signupForm.reset();
-                showScreen('login');
-                
-            } catch (error) {
-                console.error('Signup error:', error);
-                
-                if (error.code === 'auth/email-already-in-use') {
-                    signupError.textContent = 'This email is already registered.';
-                } else if (error.code === 'auth/invalid-email') {
-                    signupError.textContent = 'Invalid email address.';
-                } else if (error.code === 'auth/weak-password') {
-                    signupError.textContent = 'Password is too weak.';
-                } else {
-                    signupError.textContent = error.message || 'Signup failed. Please try again.';
-                }
-            } finally {
-                hideLoading();
-            }
-        });
-        console.log('✅ Signup form listener attached');
+window.handleSignup = async function() {
+    console.log('🔥 handleSignup called');
+    
+    const { signupEmail, signupPassword, signupConfirmPassword, signupError, signupForm, screens } = getElements();
+    const email = signupEmail?.value.trim();
+    const password = signupPassword?.value;
+    const confirmPassword = signupConfirmPassword?.value;
+    
+    console.log('📧 Email:', email);
+    console.log('🔐 Password length:', password ? password.length : 0);
+    
+    if (!email || !password) {
+        if (signupError) signupError.textContent = 'Please enter both email and password';
+        return;
     }
     
-    // Login form
-    if (elements.loginForm) {
-        elements.loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const { loginEmail, loginPassword, loginError } = getElements();
-            const email = loginEmail.value.trim();
-            const password = loginPassword.value;
-            
-            if (!email || !password) {
-                loginError.textContent = 'Please enter both email and password';
-                return;
-            }
-            
-            showLoading('Logging in...');
-            loginError.textContent = '';
-            
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                
-                if (!user.emailVerified) {
-                    await signOut(auth);
-                    loginError.textContent = 'Please verify your email address before logging in.';
-                    hideLoading();
-                    return;
-                }
-                
-                console.log('✅ Login successful:', user.email);
-                alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
-                elements.loginForm.reset();
-                showScreen('welcome');
-                
-            } catch (error) {
-                console.error('Login error:', error);
-                
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    loginError.textContent = 'Incorrect email or password.';
-                } else if (error.code === 'auth/invalid-email') {
-                    loginError.textContent = 'Invalid email address.';
-                } else if (error.code === 'auth/user-disabled') {
-                    loginError.textContent = 'This account has been disabled.';
-                } else {
-                    loginError.textContent = error.message || 'Login failed. Please try again.';
-                }
-            } finally {
-                hideLoading();
-            }
-        });
-        console.log('✅ Login form listener attached');
+    if (password.length < 6) {
+        if (signupError) signupError.textContent = 'Password must be at least 6 characters';
+        return;
     }
-}
+    
+    if (password !== confirmPassword) {
+        if (signupError) signupError.textContent = 'Passwords do not match';
+        return;
+    }
+    
+    showLoading('Creating your account...');
+    if (signupError) signupError.textContent = '';
+    
+    try {
+        console.log('📞 Calling Firebase createUserWithEmailAndPassword...');
+        
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        console.log('✅ User created:', user.uid);
+        
+        await user.sendEmailVerification();
+        console.log('📧 Verification email sent');
+        
+        await auth.signOut();
+        console.log('👤 Signed out');
+        
+        alert('Account created! Please check your email to verify your account, then log in.');
+        
+        if (signupForm) signupForm.reset();
+        hideLoading();
+        
+        // Navigate to login
+        if (screens.signup) screens.signup.classList.remove('active');
+        if (screens.login) screens.login.classList.add('active');
+        
+    } catch (error) {
+        console.error('❌ Signup error:', error);
+        
+        if (error.code === 'auth/email-already-in-use') {
+            if (signupError) signupError.textContent = 'This email is already registered.';
+        } else if (error.code === 'auth/invalid-email') {
+            if (signupError) signupError.textContent = 'Invalid email address.';
+        } else if (error.code === 'auth/weak-password') {
+            if (signupError) signupError.textContent = 'Password is too weak.';
+        } else {
+            if (signupError) signupError.textContent = error.message || 'Signup failed. Please try again.';
+        }
+        hideLoading();
+    }
+};
 
 // ==================== Auth State Observer ====================
-onAuthStateChanged(auth, (user) => {
+auth.onAuthStateChanged((user) => {
     if (user) {
         if (user.emailVerified) {
             console.log('✅ User is signed in:', user.email);
@@ -239,163 +169,4 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// ==================== Initialize App ====================
-function initializeApp() {
-    console.log('🚀 Initializing GigsCourt...');
-    
-    // Try to attach listeners immediately
-    if (document.readyState === 'loading') {
-        // DOM still loading, wait for it
-        document.addEventListener('DOMContentLoaded', () => {
-            attachEventListeners();
-            showScreen('welcome');
-        });
-    } else {
-        // DOM already ready
-        attachEventListeners();
-        showScreen('welcome');
-    }
-}
-
-// Start the app
-initializeApp();
-
-console.log('✅ GigsCourt module loaded');
-
-// ==================== Global Functions for Inline Handlers ====================
-window.handleLogin = async function() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const loginError = document.getElementById('loginError');
-    
-    if (!email || !password) {
-        loginError.textContent = 'Please enter both email and password';
-        return;
-    }
-    
-    // Show loading
-    const overlay = document.getElementById('loadingOverlay');
-    overlay.classList.add('active');
-    loginError.textContent = '';
-    
-    try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        if (!user.emailVerified) {
-            await signOut(auth);
-            loginError.textContent = 'Please verify your email address before logging in.';
-            overlay.classList.remove('active');
-            return;
-        }
-        
-        console.log('✅ Login successful:', user.email);
-        alert(`Welcome ${user.email}! Onboarding screen coming in Phase 2.`);
-        document.getElementById('loginForm').reset();
-        overlay.classList.remove('active');
-        
-        // Navigate to welcome screen
-        document.getElementById('loginScreen').classList.remove('active');
-        document.getElementById('welcomeScreen').classList.add('active');
-        
-    } catch (error) {
-        console.error('Login error:', error);
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-            loginError.textContent = 'Incorrect email or password.';
-        } else if (error.code === 'auth/invalid-email') {
-            loginError.textContent = 'Invalid email address.';
-        } else {
-            loginError.textContent = error.message || 'Login failed. Please try again.';
-        }
-        overlay.classList.remove('active');
-    }
-};
-
-window.handleSignup = async function() {
-    console.log('🔥 handleSignup called');
-    
-    // Create a debug panel on screen
-    const debugDiv = document.createElement('div');
-    debugDiv.id = 'debugPanel';
-    debugDiv.style.cssText = 'position:fixed; bottom:0; left:0; right:0; background:#333; color:#0f0; padding:10px; font-size:12px; z-index:9999; max-height:200px; overflow:auto;';
-    document.body.appendChild(debugDiv);
-    
-    function log(msg) {
-        console.log(msg);
-        debugDiv.innerHTML += msg + '<br>';
-    }
-    
-    log('🚀 handleSignup started');
-    
-    const email = document.getElementById('signupEmail')?.value?.trim();
-    const password = document.getElementById('signupPassword')?.value;
-    const confirmPassword = document.getElementById('signupConfirmPassword')?.value;
-    
-    log('Email: ' + (email || 'NOT FOUND'));
-    log('Password length: ' + (password ? password.length : 'NOT FOUND'));
-    
-    if (!email || !password) {
-        log('❌ Email or password missing');
-        return;
-    }
-    
-    if (password.length < 6) {
-        log('❌ Password too short');
-        return;
-    }
-    
-    if (password !== confirmPassword) {
-        log('❌ Passwords do not match');
-        return;
-    }
-    
-    log('✅ Validation passed');
-    
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.classList.add('active');
-        log('✅ Loading overlay shown');
-    }
-    
-    try {
-        log('📞 Calling Firebase createUserWithEmailAndPassword...');
-        
-        // Check if auth is available
-        if (typeof auth === 'undefined') {
-            log('❌ auth is undefined - Firebase not imported correctly');
-            return;
-        }
-        
-        log('✅ auth object exists');
-        
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        log('✅ User created: ' + user.uid);
-        log('📧 Sending verification email...');
-        
-        await sendEmailVerification(user);
-        log('✅ Verification email sent');
-        
-        await signOut(auth);
-        log('✅ Signed out');
-        
-        alert('Account created! Please check your email to verify your account, then log in.');
-        
-        document.getElementById('signupForm')?.reset();
-        overlay?.classList.remove('active');
-        
-        document.getElementById('signupScreen')?.classList.remove('active');
-        document.getElementById('loginScreen')?.classList.add('active');
-        
-        log('✅ Navigation complete');
-        
-    } catch (error) {
-        log('❌ ERROR: ' + error.message);
-        log('Error code: ' + (error.code || 'none'));
-        console.error('Full error:', error);
-        overlay?.classList.remove('active');
-    }
-};
-
-console.log('✅ Global handlers attached');
+console.log('✅ GigsCourt global handlers attached');
