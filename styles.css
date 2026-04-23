@@ -266,3 +266,195 @@ body {
         padding: 20px;
     }
 }
+
+/* ==================== Onboarding Styles ==================== */
+.onboarding-container {
+    padding: 20px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Progress Bar */
+.onboarding-progress {
+    margin-bottom: 30px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    width: 25%;
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 13px;
+    color: #718096;
+    margin-top: 8px;
+}
+
+/* Onboarding Steps */
+.onboarding-step {
+    display: none;
+}
+
+.onboarding-step.active {
+    display: block;
+}
+
+.onboarding-step h2 {
+    font-size: 24px;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.onboarding-step > p {
+    text-align: center;
+    color: #718096;
+    margin-bottom: 25px;
+    font-size: 15px;
+}
+
+/* Photo Upload */
+.photo-upload {
+    width: 120px;
+    height: 120px;
+    border-radius: 60px;
+    background: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 25px;
+    cursor: pointer;
+    overflow: hidden;
+    border: 2px dashed #ccc;
+    transition: border-color 0.2s;
+}
+
+.photo-upload:hover {
+    border-color: #667eea;
+}
+
+.photo-upload img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#photoPlaceholder {
+    font-size: 36px;
+}
+
+.photo-upload p {
+    font-size: 11px;
+    color: #a0aec0;
+    margin-top: 5px;
+}
+
+/* Services Grid */
+.services-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 25px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.service-chip {
+    padding: 10px 16px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #4a5568;
+    white-space: nowrap;
+}
+
+.service-chip.selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+/* Custom Service Request */
+.custom-service-row {
+    display: flex;
+    gap: 10px;
+}
+
+.custom-service-row input {
+    flex: 1;
+    padding: 14px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+}
+
+.custom-service-row button {
+    padding: 12px 18px;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* Location Map */
+.location-map {
+    width: 100%;
+    height: 200px;
+    background: #f0f0f0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 25px;
+    border: 1px solid #e2e8f0;
+}
+
+.location-map p {
+    color: #a0aec0;
+    font-size: 16px;
+}
+
+/* Welcome Info Cards */
+.welcome-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.info-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.info-icon {
+    font-size: 28px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.info-card p {
+    font-size: 14px;
+    color: #4a5568;
+    text-align: left;
+    margin: 0;
+}
