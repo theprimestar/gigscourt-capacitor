@@ -312,58 +312,89 @@ window.handleLogin = async function() {
 };
 
 window.handleSignup = async function() {
-    const email = document.getElementById('signupEmail').value.trim();
-    const password = document.getElementById('signupPassword').value;
-    const confirmPassword = document.getElementById('signupConfirmPassword').value;
-    const signupError = document.getElementById('signupError');
+    console.log('🔥 handleSignup called');
+    
+    // Create a debug panel on screen
+    const debugDiv = document.createElement('div');
+    debugDiv.id = 'debugPanel';
+    debugDiv.style.cssText = 'position:fixed; bottom:0; left:0; right:0; background:#333; color:#0f0; padding:10px; font-size:12px; z-index:9999; max-height:200px; overflow:auto;';
+    document.body.appendChild(debugDiv);
+    
+    function log(msg) {
+        console.log(msg);
+        debugDiv.innerHTML += msg + '<br>';
+    }
+    
+    log('🚀 handleSignup started');
+    
+    const email = document.getElementById('signupEmail')?.value?.trim();
+    const password = document.getElementById('signupPassword')?.value;
+    const confirmPassword = document.getElementById('signupConfirmPassword')?.value;
+    
+    log('Email: ' + (email || 'NOT FOUND'));
+    log('Password length: ' + (password ? password.length : 'NOT FOUND'));
     
     if (!email || !password) {
-        signupError.textContent = 'Please enter both email and password';
+        log('❌ Email or password missing');
         return;
     }
     
     if (password.length < 6) {
-        signupError.textContent = 'Password must be at least 6 characters';
+        log('❌ Password too short');
         return;
     }
     
     if (password !== confirmPassword) {
-        signupError.textContent = 'Passwords do not match';
+        log('❌ Passwords do not match');
         return;
     }
     
-    // Show loading
+    log('✅ Validation passed');
+    
     const overlay = document.getElementById('loadingOverlay');
-    overlay.classList.add('active');
-    signupError.textContent = '';
+    if (overlay) {
+        overlay.classList.add('active');
+        log('✅ Loading overlay shown');
+    }
     
     try {
+        log('📞 Calling Firebase createUserWithEmailAndPassword...');
+        
+        // Check if auth is available
+        if (typeof auth === 'undefined') {
+            log('❌ auth is undefined - Firebase not imported correctly');
+            return;
+        }
+        
+        log('✅ auth object exists');
+        
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
+        log('✅ User created: ' + user.uid);
+        log('📧 Sending verification email...');
+        
         await sendEmailVerification(user);
+        log('✅ Verification email sent');
+        
         await signOut(auth);
+        log('✅ Signed out');
         
         alert('Account created! Please check your email to verify your account, then log in.');
-        document.getElementById('signupForm').reset();
-        overlay.classList.remove('active');
         
-        // Navigate to login screen
-        document.getElementById('signupScreen').classList.remove('active');
-        document.getElementById('loginScreen').classList.add('active');
+        document.getElementById('signupForm')?.reset();
+        overlay?.classList.remove('active');
+        
+        document.getElementById('signupScreen')?.classList.remove('active');
+        document.getElementById('loginScreen')?.classList.add('active');
+        
+        log('✅ Navigation complete');
         
     } catch (error) {
-        console.error('Signup error:', error);
-        if (error.code === 'auth/email-already-in-use') {
-            signupError.textContent = 'This email is already registered.';
-        } else if (error.code === 'auth/invalid-email') {
-            signupError.textContent = 'Invalid email address.';
-        } else if (error.code === 'auth/weak-password') {
-            signupError.textContent = 'Password is too weak.';
-        } else {
-            signupError.textContent = error.message || 'Signup failed. Please try again.';
-        }
-        overlay.classList.remove('active');
+        log('❌ ERROR: ' + error.message);
+        log('Error code: ' + (error.code || 'none'));
+        console.error('Full error:', error);
+        overlay?.classList.remove('active');
     }
 };
 
