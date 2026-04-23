@@ -49,21 +49,16 @@ async function initAuthgear() {
             });
             console.log('✅ Authgear initialized (Capacitor SDK)');
         } else {
-            // Web browser environment
-            const authgearModule = await import('@authgear/web');
-            // The SDK exports a namespace, and the class is a property of that namespace
-            const AuthgearClass = authgearModule.default?.Authgear || authgearModule.Authgear;
-            
-            if (!AuthgearClass) {
-                console.error('❌ Authgear class not found in imported module:', authgearModule);
-                throw new Error('Authgear class not found in imported module');
+            // Web browser environment - use global authgear object
+            if (typeof window.authgear === 'undefined') {
+                throw new Error('Authgear Web SDK not loaded. Check script tag in index.html.');
             }
             
-            authgear = new AuthgearClass({
+            authgear = new window.authgear.Authgear({
                 endpoint: AUTHGEAR_ENDPOINT,
                 clientID: AUTHGEAR_CLIENT_ID
             });
-            console.log('✅ Authgear initialized (Web SDK)');
+            console.log('✅ Authgear initialized (Web SDK - Global)');
         }
         
         authgearReady = true;
