@@ -81,6 +81,25 @@
             <div id="signupError" class="error-message"></div>
         </div>
 
+        <!-- Email Verified Screen -->
+        <div id="emailVerifiedScreen" class="screen">
+            <div class="logo-container">
+                <h1 class="app-title">GigsCourt</h1>
+            </div>
+            <div class="auth-form">
+                <div style="text-align: center;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">✅</div>
+                    <h3 style="margin-bottom: 15px; color: #27ae60;">Email Verified!</h3>
+                    <p style="color: #718096; margin-bottom: 30px;">
+                        Your email has been successfully verified.
+                    </p>
+                    <button class="primary-btn full-width" onclick="document.getElementById('emailVerifiedScreen').classList.remove('active'); document.getElementById('welcomeScreen').classList.add('active'); alert('Onboarding screen coming in Phase 2!');">
+                        Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Loading Overlay -->
         <div id="loadingOverlay" class="overlay">
             <div class="spinner"></div>
