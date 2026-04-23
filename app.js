@@ -1,7 +1,10 @@
-// GigsCourt App - Authgear Authentication Logic
+// GigsCourt App - Authgear Authentication Logic (Dual Platform)
 
-// Import Authgear configuration
-import { authgearClientID, authgearEndpoint } from './authgear-config.js';
+// Import configuration
+import { REDIRECT_URI, AUTHGEAR_CLIENT_ID, AUTHGEAR_ENDPOINT } from './app-config.js';
+
+// ==================== Platform Detection ====================
+const isCapacitor = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
 // ==================== DOM Elements ====================
 const loadingOverlay = document.getElementById('loadingOverlay');
@@ -13,15 +16,24 @@ let authgear = null;
 
 async function initAuthgear() {
     try {
-        const { Authgear } = await import('@authgear/capacitor');
-        
-        authgear = new Authgear({
-            endpoint: authgearEndpoint,
-            clientID: authgearClientID,
-            isThirdPartyWebviewMessageEnabled: false
-        });
-        
-        console.log('✅ Authgear initialized');
+        if (isCapacitor) {
+            // Native Capacitor environment
+            const { Authgear } = await import('@authgear/capacitor');
+            authgear = new Authgear({
+                endpoint: AUTHGEAR_ENDPOINT,
+                clientID: AUTHGEAR_CLIENT_ID,
+                isThirdPartyWebviewMessageEnabled: false
+            });
+            console.log('✅ Authgear initialized (Capacitor SDK)');
+        } else {
+            // Web browser environment
+            const { Authgear } = await import('@authgear/web');
+            authgear = new Authgear({
+                endpoint: AUTHGEAR_ENDPOINT,
+                clientID: AUTHGEAR_CLIENT_ID
+            });
+            console.log('✅ Authgear initialized (Web SDK)');
+        }
         
         const sessionState = await authgear.fetchSessionState();
         if (sessionState === 'AUTHENTICATED') {
@@ -60,7 +72,7 @@ window.startAuthgearLogin = async function() {
     
     try {
         await authgear.authenticate({
-            redirectUri: 'com.gigscourt.app://oauth2redirect',
+            redirectUri: REDIRECT_URI,
             uiLocales: ['en'],
             colorScheme: 'light'
         });
