@@ -1,12 +1,4 @@
-// Firebase Configuration for GigsCourt
-import { Capacitor } from '@capacitor/core';
-import { initializeApp } from 'firebase/app';
-import { 
-  initializeAuth, 
-  indexedDBLocalPersistence, 
-  getAuth 
-} from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+// GigsCourt Firebase Configuration (Global Compat Version)
 
 // Your Firebase configuration
 const firebaseConfig = {
@@ -19,25 +11,21 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 
-// KEY FIX: Use indexedDBLocalPersistence on native platforms
-// This prevents the infinite spinner issue in Capacitor WebView
-let auth;
-if (Capacitor.isNativePlatform()) {
-  auth = initializeAuth(app, {
-    persistence: indexedDBLocalPersistence
+// Get Auth instance
+const auth = firebase.auth();
+
+// CRITICAL FIX: Set persistence to INDEXEDDB for Capacitor WebView
+auth.setPersistence(firebase.auth.Auth.Persistence.INDEXEDDB)
+  .then(() => {
+    console.log('✅ Firebase Auth persistence set to INDEXEDDB');
+  })
+  .catch((error) => {
+    console.error('❌ Failed to set persistence:', error);
   });
-  console.log('✅ Firebase Auth initialized with native persistence');
-} else {
-  auth = getAuth(app);
-  console.log('✅ Firebase Auth initialized for web');
-}
 
-// Initialize Firestore
-const db = getFirestore(app);
+// Get Firestore instance (for later use)
+const db = firebase.firestore();
 
-// Export instances
-export { auth, db };
-
-console.log('✅ Firebase configured for GigsCourt');
+console.log('✅ Firebase initialized (global compat mode)');
