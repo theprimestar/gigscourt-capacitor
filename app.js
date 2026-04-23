@@ -35,6 +35,11 @@ function setButtonsEnabled(enabled) {
 }
 
 // ==================== Initialize Authgear ====================
+let authgear = null;
+let authgearReady = false;
+
+// ... (setButtonsEnabled and getActionButtons functions) ...
+
 async function initAuthgear() {
     try {
         console.log('🚀 Initializing Authgear...');
@@ -69,8 +74,20 @@ async function initAuthgear() {
             alert(`Welcome back ${userInfo.email || 'User'}! Onboarding screen coming in Phase 2.`);
         }
     } catch (error) {
+        // --- Start of updated logging ---
         console.error('❌ Authgear initialization failed:', error);
-        // Keep buttons disabled and show a message
+        
+        // Log the full error object
+        console.error('--- Full Error Object ---');
+        console.error(error);
+        
+        // Log the cause property if it exists
+        if (error.cause) {
+            console.error('--- Error Cause ---');
+            console.error(error.cause);
+        }
+        // --- End of updated logging ---
+        
         alert('Failed to initialize authentication. Please check your connection and restart the app.');
     }
 }
