@@ -11,11 +11,34 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 const loginError = document.getElementById('loginError');
 const signupError = document.getElementById('signupError');
 
-// ==================== Initialize Authgear ====================
+// ==================== Authgear State ====================
 let authgear = null;
+let authgearReady = false;
 
+// ==================== Get All Action Buttons ====================
+function getActionButtons() {
+    return document.querySelectorAll('button[onclick*="startAuthgearLogin"]');
+}
+
+// ==================== Enable/Disable Buttons ====================
+function setButtonsEnabled(enabled) {
+    const buttons = getActionButtons();
+    buttons.forEach(btn => {
+        if (enabled) {
+            btn.removeAttribute('disabled');
+            btn.style.opacity = '1';
+        } else {
+            btn.setAttribute('disabled', 'disabled');
+            btn.style.opacity = '0.5';
+        }
+    });
+}
+
+// ==================== Initialize Authgear ====================
 async function initAuthgear() {
     try {
+        console.log('🚀 Initializing Authgear...');
+        
         if (isCapacitor) {
             // Native Capacitor environment
             const { Authgear } = await import('@authgear/capacitor');
@@ -35,6 +58,10 @@ async function initAuthgear() {
             console.log('✅ Authgear initialized (Web SDK)');
         }
         
+        authgearReady = true;
+        setButtonsEnabled(true);
+        
+        // Check existing session
         const sessionState = await authgear.fetchSessionState();
         if (sessionState === 'AUTHENTICATED') {
             const userInfo = await authgear.fetchUserInfo();
@@ -43,10 +70,10 @@ async function initAuthgear() {
         }
     } catch (error) {
         console.error('❌ Authgear initialization failed:', error);
+        // Keep buttons disabled and show a message
+        alert('Failed to initialize authentication. Please check your connection and restart the app.');
     }
 }
-
-initAuthgear();
 
 // ==================== Helper Functions ====================
 function showLoading(message = 'Please wait...') {
@@ -61,8 +88,8 @@ function hideLoading() {
 
 // ==================== Global Auth Function ====================
 window.startAuthgearLogin = async function() {
-    if (!authgear) {
-        alert('Authentication service not ready. Please restart the app.');
+    if (!authgearReady || !authgear) {
+        alert('Authentication service is still loading. Please wait a moment.');
         return;
     }
     
@@ -91,5 +118,12 @@ window.startAuthgearLogin = async function() {
         hideLoading();
     }
 };
+
+// ==================== Start Initialization ====================
+// Disable buttons immediately
+setButtonsEnabled(false);
+
+// Initialize Authgear
+initAuthgear();
 
 console.log('GigsCourt Authgear module loaded');
