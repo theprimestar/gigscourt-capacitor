@@ -50,8 +50,16 @@ async function initAuthgear() {
             console.log('✅ Authgear initialized (Capacitor SDK)');
         } else {
             // Web browser environment
-            const { Authgear } = await import('@authgear/web');
-            authgear = new Authgear({
+            const authgearModule = await import('@authgear/web');
+            // The SDK exports a namespace, and the class is a property of that namespace
+            const AuthgearClass = authgearModule.default?.Authgear || authgearModule.Authgear;
+            
+            if (!AuthgearClass) {
+                console.error('❌ Authgear class not found in imported module:', authgearModule);
+                throw new Error('Authgear class not found in imported module');
+            }
+            
+            authgear = new AuthgearClass({
                 endpoint: AUTHGEAR_ENDPOINT,
                 clientID: AUTHGEAR_CLIENT_ID
             });
