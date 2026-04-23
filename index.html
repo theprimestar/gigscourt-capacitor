@@ -11,6 +11,17 @@
     <meta name="theme-color" content="#C0392B">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js" type="module"></script>
+    
+    <!-- App Scripts -->
+    <script src="app.js" type="module"></script>
 </head>
 <body>
     <div id="app">
@@ -87,11 +98,5 @@
             <p>Please wait...</p>
         </div>
     </div>
-
-    <!-- Firebase Configuration -->
-    <script src="firebase-config.js" type="module"></script>
-    
-    <!-- App Scripts -->
-    <script src="app.js" type="module"></script>
 </body>
 </html>
