@@ -42,7 +42,7 @@
                     <label for="loginPassword">Password</label>
                     <input type="password" id="loginPassword" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="primary-btn full-width" onclick="window.startAuthgearLogin();">Login</button>
+                <button type="submit" class="primary-btn full-width" onclick="window.handleLogin();">Login</button>
                 <p class="form-footer">
                     Don't have an account? 
                     <button type="button" class="text-link" onclick="document.getElementById('loginScreen').classList.remove('active'); document.getElementById('signupScreen').classList.add('active');">Sign Up</button>
@@ -72,7 +72,7 @@
                     <label for="signupConfirmPassword">Confirm Password</label>
                     <input type="password" id="signupConfirmPassword" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="primary-btn full-width" onclick="window.startAuthgearLogin();">Create Account</button>
+                <button type="submit" class="primary-btn full-width" onclick="window.handleSignup();">Create Account</button>
                 <p class="form-footer">
                     Already have an account? 
                     <button type="button" class="text-link" onclick="document.getElementById('signupScreen').classList.remove('active'); document.getElementById('loginScreen').classList.add('active');">Login</button>
@@ -88,8 +88,8 @@
         </div>
     </div>
 
-    <!-- Authgear Web SDK (Global) -->
-    <script src="https://unpkg.com/@authgear/web"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- App Configuration -->
     <script src="app-config.js"></script>
