@@ -15,7 +15,6 @@ console.log('✅ Supabase client initialized');
 
 // ==================== Initialize Firebase ====================
 // Firebase is loaded via global script in index.html
-const db = firebase.firestore();
 console.log('✅ Firebase Firestore initialized');
 
 // ==================== DOM Elements ====================
