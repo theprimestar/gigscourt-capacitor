@@ -4,7 +4,7 @@
   "description": "GigsCourt - Connect with local gig workers",
   "main": "index.html",
   "dependencies": {
-    "@capacitor-firebase/authentication": "^8.0.0",
+    "@authgear/capacitor": "^2.11.0",
     "@capacitor/android": "^8.0.0",
     "@capacitor/camera": "^8.0.0",
     "@capacitor/core": "^8.0.0",
