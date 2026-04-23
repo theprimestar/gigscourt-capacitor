@@ -17,11 +17,6 @@
       "launchShowDuration": 0,
       "launchAutoHide": true,
       "backgroundColor": "#C0392B"
-    },
-    "CapacitorFirebaseAuthentication": {
-      "ios": {
-        "urlScheme": "com.gigscourt.app"
-      }
     }
   },
   "android": {
