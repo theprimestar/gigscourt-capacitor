@@ -53,6 +53,59 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
     }
 });
 
+// ==================== Check Email Verification Status ====================
+async function checkEmailVerificationOnResume() {
+    // Listen for app resume (user returning from email)
+    document.addEventListener('resume', async () => {
+        console.log('📱 App resumed - checking email verification...');
+        await verifyAndRedirect();
+    });
+    
+    // Also check immediately on load (in case user just opened the app after verifying)
+    window.addEventListener('load', async () => {
+        // Small delay to ensure Supabase is initialized
+        setTimeout(async () => {
+            await verifyAndRedirect();
+        }, 1000);
+    });
+}
+
+async function verifyAndRedirect() {
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (session?.user) {
+            // User is logged in - check if email is verified
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            if (user?.email_confirmed_at) {
+                // Email is verified - check if this is a fresh verification
+                const lastVerifiedCheck = localStorage.getItem('gigscourt_email_verified_shown');
+                const verificationTime = new Date(user.email_confirmed_at).getTime();
+                
+                if (!lastVerifiedCheck || parseInt(lastVerifiedCheck) < verificationTime) {
+                    // Fresh verification detected
+                    localStorage.setItem('gigscourt_email_verified_shown', verificationTime.toString());
+                    navigateTo('emailVerifiedScreen');
+                    return;
+                }
+            }
+            
+            // Already verified previously or not yet - check session normally
+            const currentScreen = document.querySelector('.screen.active');
+            if (!currentScreen || currentScreen.id === 'welcomeScreen') {
+                // Already logged in, show welcome alert
+                console.log('User already logged in:', session.user.email);
+            }
+        }
+    } catch (error) {
+        console.log('Verification check:', error.message);
+    }
+}
+
+// Initialize resume listener
+checkEmailVerificationOnResume();
+
 // Check session on load
 checkSession();
 
