@@ -24,6 +24,12 @@ jobs:
       - name: Add iOS platform
         run: npx cap add ios
       
+      - name: Force iOS deployment target to 15.0 in Xcode project
+        run: |
+          cd ios/App
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
+          echo "✅ iOS deployment target forced to 15.0 in Xcode project"
+      
       - name: Create Podfile with iOS 15.0 target
         run: |
           cd ios/App
@@ -73,6 +79,7 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath ./build \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
