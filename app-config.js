@@ -13,5 +13,3 @@ const AUTHGEAR_ENDPOINT = 'https://gigscourt.authgear.cloud';
 
 console.log('📱 Environment:', isCapacitor ? 'Capacitor' : 'Web');
 console.log('🔗 Redirect URI:', REDIRECT_URI);
-
-export { REDIRECT_URI, AUTHGEAR_CLIENT_ID, AUTHGEAR_ENDPOINT };
