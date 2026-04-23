@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-26  # Runner with Xcode 26.4.1
+    runs-on: macos-26
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -13,7 +13,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24' # Capacitor 8 requires Node 22+
+          node-version: '24'
       
       - name: Install dependencies
         run: npm install
@@ -23,6 +23,34 @@ jobs:
       
       - name: Add iOS platform
         run: npx cap add ios
+      
+      - name: Create Podfile with iOS 15.0 target
+        run: |
+          cd ios/App
+          cat > Podfile << 'EOF'
+          platform :ios, '15.0'
+          use_frameworks!
+
+          target 'App' do
+            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+            pod 'AuthgearCapacitor', :path => '../../node_modules/@authgear/capacitor'
+          end
+
+          post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              target.build_configurations.each do |config|
+                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+              end
+            end
+          end
+          EOF
+          echo "✅ Podfile created with iOS 15.0 target"
+      
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios/App
+          pod install --repo-update
       
       - name: Sync Capacitor
         run: npx cap sync ios
@@ -40,7 +68,7 @@ jobs:
         run: |
           cd ios/App
           xcodebuild clean build \
-            -project App.xcodeproj \
+            -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
