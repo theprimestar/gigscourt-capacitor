@@ -11,11 +11,6 @@
     <meta name="theme-color" content="#C0392B">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <!-- Firebase SDKs (Global Compat Versions) -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div id="app">
@@ -26,19 +21,19 @@
                 <p class="app-tagline">Find local gig workers near you</p>
             </div>
             <div class="auth-buttons">
-                <button id="showLoginBtn" class="primary-btn" onclick="document.getElementById('welcomeScreen').classList.remove('active'); document.getElementById('loginScreen').classList.add('active');">Login</button>
-                <button id="showSignupBtn" class="secondary-btn" onclick="document.getElementById('welcomeScreen').classList.remove('active'); document.getElementById('signupScreen').classList.add('active');">Sign Up</button>
+                <button id="showLoginBtn" class="primary-btn">Login</button>
+                <button id="showSignupBtn" class="secondary-btn">Sign Up</button>
             </div>
         </div>
 
         <!-- Login Screen -->
         <div id="loginScreen" class="screen">
             <div class="screen-header">
-                <button class="back-btn" onclick="document.getElementById('loginScreen').classList.remove('active'); document.getElementById('welcomeScreen').classList.add('active');">←</button>
+                <button class="back-btn" data-target="welcomeScreen">←</button>
                 <h2>Login</h2>
                 <div></div>
             </div>
-            <form id="loginForm" class="auth-form" onsubmit="event.preventDefault(); window.handleLogin(); return false;">
+            <form id="loginForm" class="auth-form" onsubmit="return false;">
                 <div class="form-group">
                     <label for="loginEmail">Email</label>
                     <input type="email" id="loginEmail" placeholder="your@email.com" required>
@@ -50,7 +45,7 @@
                 <button type="submit" class="primary-btn full-width">Login</button>
                 <p class="form-footer">
                     Don't have an account? 
-                    <button type="button" class="text-link" onclick="document.getElementById('loginScreen').classList.remove('active'); document.getElementById('signupScreen').classList.add('active');">Sign Up</button>
+                    <button type="button" class="text-link" data-target="signupScreen">Sign Up</button>
                 </p>
             </form>
             <div id="loginError" class="error-message"></div>
@@ -59,11 +54,11 @@
         <!-- Signup Screen -->
         <div id="signupScreen" class="screen">
             <div class="screen-header">
-                <button class="back-btn" onclick="document.getElementById('signupScreen').classList.remove('active'); document.getElementById('welcomeScreen').classList.add('active');">←</button>
+                <button class="back-btn" data-target="welcomeScreen">←</button>
                 <h2>Sign Up</h2>
                 <div></div>
             </div>
-            <form id="signupForm" class="auth-form" onsubmit="event.preventDefault(); window.handleSignup(); return false;">
+            <form id="signupForm" class="auth-form" onsubmit="return false;">
                 <div class="form-group">
                     <label for="signupEmail">Email</label>
                     <input type="email" id="signupEmail" placeholder="your@email.com" required>
@@ -80,7 +75,7 @@
                 <button type="submit" class="primary-btn full-width">Create Account</button>
                 <p class="form-footer">
                     Already have an account? 
-                    <button type="button" class="text-link" onclick="document.getElementById('signupScreen').classList.remove('active'); document.getElementById('loginScreen').classList.add('active');">Login</button>
+                    <button type="button" class="text-link" data-target="loginScreen">Login</button>
                 </p>
             </form>
             <div id="signupError" class="error-message"></div>
@@ -93,10 +88,10 @@
         </div>
     </div>
 
-    <!-- Firebase Configuration -->
-    <script src="firebase-config.js"></script>
+    <!-- Authgear Configuration -->
+    <script src="authgear-config.js"></script>
     
     <!-- App Scripts -->
-    <script src="app.js"></script>
+    <script src="app.js" type="module"></script>
 </body>
 </html>
