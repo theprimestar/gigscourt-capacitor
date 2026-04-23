@@ -1,6 +1,4 @@
-// GigsCourt Firebase Configuration (Global Compat Version)
-
-// Your Firebase configuration
+// Firebase Configuration for GigsCourt
 const firebaseConfig = {
   apiKey: "AIzaSyAqvDHUPuGtZGMephb3dN_31eruuBXnbFE",
   authDomain: "gigscourt2.firebaseapp.com",
@@ -12,20 +10,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-
-// Get Auth instance
-const auth = firebase.auth();
-
-// CRITICAL FIX: Set persistence to INDEXEDDB for Capacitor WebView
-auth.setPersistence(firebase.auth.Auth.Persistence.INDEXEDDB)
-  .then(() => {
-    console.log('✅ Firebase Auth persistence set to INDEXEDDB');
-  })
-  .catch((error) => {
-    console.error('❌ Failed to set persistence:', error);
-  });
-
-// Get Firestore instance (for later use)
 const db = firebase.firestore();
 
-console.log('✅ Firebase initialized (global compat mode)');
+console.log('✅ Firebase initialized');
