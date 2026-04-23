@@ -1,4 +1,4 @@
-// GigsCourt App - Supabase Authentication Logic
+// GigsCourt App - Supabase Authentication Logic.
 
 // ==================== Initialize Supabase ====================
 const { createClient } = supabase;
