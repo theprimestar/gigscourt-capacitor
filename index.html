@@ -100,6 +100,91 @@
             </div>
         </div>
 
+        <!-- Onboarding Screen -->
+        <div id="onboardingScreen" class="screen">
+            <div class="onboarding-container">
+                <!-- Progress Bar -->
+                <div class="onboarding-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p class="progress-text" id="progressText">Step 1 of 4</p>
+                </div>
+
+                <!-- Step 1: Name & Photo -->
+                <div class="onboarding-step active" id="step1">
+                    <h2>Welcome to GigsCourt</h2>
+                    <p>Let's set up your profile</p>
+                    <div class="photo-upload" onclick="document.getElementById('profilePhotoInput').click()">
+                        <img id="profilePhotoPreview" src="" alt="Profile Photo" style="display:none;">
+                        <div id="photoPlaceholder">📷</div>
+                        <p>Tap to add profile photo</p>
+                        <input type="file" id="profilePhotoInput" accept="image/*" onchange="window.handlePhotoSelect(event)" style="display:none;">
+                    </div>
+                    <div class="form-group">
+                        <label for="displayName">Full Name</label>
+                        <input type="text" id="displayName" placeholder="Enter your full name" required>
+                    </div>
+                    <button class="primary-btn full-width" onclick="window.goToStep(2)">Next</button>
+                </div>
+
+                <!-- Step 2: Services -->
+                <div class="onboarding-step" id="step2">
+                    <h2>What services do you offer?</h2>
+                    <p>Select all that apply. You can change this later.</p>
+                    <div class="services-grid" id="servicesGrid">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="form-group">
+                        <label for="customServiceInput">Can't find your service? Request it:</label>
+                        <div class="custom-service-row">
+                            <input type="text" id="customServiceInput" placeholder="Type a service name">
+                            <button class="secondary-btn" onclick="window.requestCustomService()">Request</button>
+                        </div>
+                    </div>
+                    <button class="primary-btn full-width" onclick="window.goToStep(3)">Next</button>
+                </div>
+
+                <!-- Step 3: Location -->
+                <div class="onboarding-step" id="step3">
+                    <h2>Where is your workspace?</h2>
+                    <p>This helps clients find you nearby.</p>
+                    <div class="location-map" id="locationMap">
+                        <p>📍 Loading map...</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="addressDescription">Describe your location</label>
+                        <input type="text" id="addressDescription" placeholder="E.g., Blue house with white gate, behind the mosque">
+                    </div>
+                    <button class="primary-btn full-width" onclick="window.goToStep(4)">Next</button>
+                </div>
+
+                <!-- Step 4: Welcome Info -->
+                <div class="onboarding-step" id="step4">
+                    <h2>You're All Set! 🎉</h2>
+                    <div class="welcome-info">
+                        <div class="info-card">
+                            <span class="info-icon">🔍</span>
+                            <p>Clients search for services near them</p>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-icon">⭐</span>
+                            <p>Your rating grows with every completed gig</p>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-icon">💬</span>
+                            <p>Chat directly with clients in real-time</p>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-icon">📊</span>
+                            <p>Track your gigs and grow your reputation</p>
+                        </div>
+                    </div>
+                    <button class="primary-btn full-width" onclick="window.completeOnboarding()">Get Started</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Loading Overlay -->
         <div id="loadingOverlay" class="overlay">
             <div class="spinner"></div>
