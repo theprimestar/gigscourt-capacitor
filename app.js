@@ -1,8 +1,5 @@
 // GigsCourt App - Authgear Authentication Logic (Dual Platform)
 
-// Import configuration
-import { REDIRECT_URI, AUTHGEAR_CLIENT_ID, AUTHGEAR_ENDPOINT } from './app-config.js';
-
 // ==================== Platform Detection ====================
 const isCapacitor = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
