@@ -5,6 +5,7 @@
   "main": "index.html",
   "dependencies": {
     "@authgear/capacitor": "^2.11.0",
+    "@authgear/web": "^3.0.0",
     "@capacitor/android": "^7.0.0",
     "@capacitor/camera": "^7.0.0",
     "@capacitor/core": "^7.0.0",
