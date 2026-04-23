@@ -42,7 +42,7 @@ async function initAuthgear() {
                 isThirdPartyWebviewMessageEnabled: false
             });
             
-            // *** THIS IS THE VERIFIED FIX: Call configure() ***
+            // *** REQUIRED: Configure the SDK ***
             await authgear.configure({
                 endpoint: AUTHGEAR_ENDPOINT,
                 clientID: AUTHGEAR_CLIENT_ID,
@@ -60,7 +60,7 @@ async function initAuthgear() {
                 clientID: AUTHGEAR_CLIENT_ID
             });
             
-            // *** THIS IS THE VERIFIED FIX for Web SDK ***
+            // *** REQUIRED: Configure the SDK ***
             await authgear.configure({
                 endpoint: AUTHGEAR_ENDPOINT,
                 clientID: AUTHGEAR_CLIENT_ID,
