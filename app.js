@@ -4,11 +4,6 @@
 import { authgearClientID, authgearEndpoint } from './authgear-config.js';
 
 // ==================== DOM Elements ====================
-const screens = {
-    welcome: document.getElementById('welcomeScreen'),
-    login: document.getElementById('loginScreen'),
-    signup: document.getElementById('signupScreen')
-};
 const loadingOverlay = document.getElementById('loadingOverlay');
 const loginError = document.getElementById('loginError');
 const signupError = document.getElementById('signupError');
@@ -41,41 +36,27 @@ async function initAuthgear() {
 
 initAuthgear();
 
-// ==================== Screen Navigation ====================
-function showScreen(screenId) {
-    Object.values(screens).forEach(screen => {
-        if (screen) screen.classList.remove('active');
-    });
-    if (screens[screenId]) {
-        screens[screenId].classList.add('active');
-    }
-    clearErrors();
-}
-
-function clearErrors() {
-    if (loginError) loginError.textContent = '';
-    if (signupError) signupError.textContent = '';
-}
-
+// ==================== Helper Functions ====================
 function showLoading(message = 'Please wait...') {
-    const loadingText = loadingOverlay.querySelector('p');
+    const loadingText = loadingOverlay?.querySelector('p');
     if (loadingText) loadingText.textContent = message;
-    loadingOverlay.classList.add('active');
+    if (loadingOverlay) loadingOverlay.classList.add('active');
 }
 
 function hideLoading() {
-    loadingOverlay.classList.remove('active');
+    if (loadingOverlay) loadingOverlay.classList.remove('active');
 }
 
-// ==================== Auth Flow ====================
-async function startAuthentication() {
+// ==================== Global Auth Function ====================
+window.startAuthgearLogin = async function() {
     if (!authgear) {
-        loginError.textContent = 'Authentication service not ready. Please restart the app.';
+        alert('Authentication service not ready. Please restart the app.');
         return;
     }
     
     showLoading('Opening secure login...');
-    loginError.textContent = '';
+    if (loginError) loginError.textContent = '';
+    if (signupError) signupError.textContent = '';
     
     try {
         await authgear.authenticate({
@@ -91,29 +72,12 @@ async function startAuthentication() {
     } catch (error) {
         console.error('Authentication error:', error);
         if (error.message !== 'Cancel') {
-            loginError.textContent = 'Login failed. Please try again.';
+            if (loginError) loginError.textContent = 'Login failed. Please try again.';
+            if (signupError) signupError.textContent = 'Signup failed. Please try again.';
         }
     } finally {
         hideLoading();
     }
-}
-
-// ==================== Event Listeners ====================
-document.getElementById('showLoginBtn').addEventListener('click', startAuthentication);
-document.getElementById('showSignupBtn').addEventListener('click', startAuthentication);
-
-document.querySelectorAll('[data-target]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const target = btn.getAttribute('data-target');
-        if (target === 'loginScreen') showScreen('login');
-        if (target === 'signupScreen') showScreen('signup');
-        if (target === 'welcomeScreen') showScreen('welcome');
-    });
-});
-
-document.querySelectorAll('.back-btn').forEach(btn => {
-    btn.addEventListener('click', () => showScreen('welcome'));
-});
+};
 
 console.log('GigsCourt Authgear module loaded');
