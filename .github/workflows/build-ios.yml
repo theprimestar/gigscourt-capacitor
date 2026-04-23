@@ -24,51 +24,8 @@ jobs:
       - name: Add iOS platform
         run: npx cap add ios
       
-      - name: Force iOS deployment target to 15.0 in Xcode project
-        run: |
-          cd ios/App
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' App.xcodeproj/project.pbxproj
-          echo "✅ iOS deployment target forced to 15.0 in Xcode project"
-      
-      - name: Create Podfile with iOS 15.0 target
-        run: |
-          cd ios/App
-          cat > Podfile << 'EOF'
-          platform :ios, '15.0'
-          use_frameworks!
-
-          target 'App' do
-            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
-            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-            pod 'AuthgearCapacitor', :path => '../../node_modules/@authgear/capacitor'
-          end
-
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-              end
-            end
-          end
-          EOF
-          echo "✅ Podfile created with iOS 15.0 target"
-      
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios/App
-          pod install --repo-update
-      
       - name: Sync Capacitor
         run: npx cap sync ios
-      
-      - name: Configure iOS URL Scheme for Authgear
-        run: |
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.gigscourt.app" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string com.gigscourt.app" ios/App/App/Info.plist || true
-          echo "✅ Custom URL scheme configured for Authgear"
       
       - name: Build unsigned IPA
         run: |
@@ -79,7 +36,6 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath ./build \
-            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
