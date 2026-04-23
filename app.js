@@ -1,8 +1,5 @@
 // GigsCourt App - Authgear Authentication Logic (Dual Platform)
 
-// ==================== Platform Detection ====================
-const isCapacitor = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
-
 // ==================== DOM Elements ====================
 const loadingOverlay = document.getElementById('loadingOverlay');
 const loginError = document.getElementById('loginError');
