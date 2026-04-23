@@ -4,8 +4,6 @@
   "description": "GigsCourt - Connect with local gig workers",
   "main": "index.html",
   "dependencies": {
-    "@authgear/capacitor": "^2.11.0",
-    "@authgear/web": "^3.0.0",
     "@capacitor/android": "^7.0.0",
     "@capacitor/camera": "^7.0.0",
     "@capacitor/core": "^7.0.0",
@@ -14,7 +12,8 @@
     "@capacitor/ios": "^7.0.0",
     "@capacitor/preferences": "^7.0.0",
     "@capacitor/push-notifications": "^7.0.0",
-    "@capacitor/splash-screen": "^7.0.0"
+    "@capacitor/splash-screen": "^7.0.0",
+    "@supabase/supabase-js": "^2.49.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.0.0"
