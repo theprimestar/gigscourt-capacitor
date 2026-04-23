@@ -21,15 +21,15 @@
                 <p class="app-tagline">Find local gig workers near you</p>
             </div>
             <div class="auth-buttons">
-                <button id="showLoginBtn" class="primary-btn">Login</button>
-                <button id="showSignupBtn" class="secondary-btn">Sign Up</button>
+                <button class="primary-btn" onclick="document.getElementById('welcomeScreen').classList.remove('active'); document.getElementById('loginScreen').classList.add('active');">Login</button>
+                <button class="secondary-btn" onclick="document.getElementById('welcomeScreen').classList.remove('active'); document.getElementById('signupScreen').classList.add('active');">Sign Up</button>
             </div>
         </div>
 
         <!-- Login Screen -->
         <div id="loginScreen" class="screen">
             <div class="screen-header">
-                <button class="back-btn" data-target="welcomeScreen">←</button>
+                <button class="back-btn" onclick="document.getElementById('loginScreen').classList.remove('active'); document.getElementById('welcomeScreen').classList.add('active');">←</button>
                 <h2>Login</h2>
                 <div></div>
             </div>
@@ -42,10 +42,10 @@
                     <label for="loginPassword">Password</label>
                     <input type="password" id="loginPassword" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="primary-btn full-width">Login</button>
+                <button type="submit" class="primary-btn full-width" onclick="window.startAuthgearLogin();">Login</button>
                 <p class="form-footer">
                     Don't have an account? 
-                    <button type="button" class="text-link" data-target="signupScreen">Sign Up</button>
+                    <button type="button" class="text-link" onclick="document.getElementById('loginScreen').classList.remove('active'); document.getElementById('signupScreen').classList.add('active');">Sign Up</button>
                 </p>
             </form>
             <div id="loginError" class="error-message"></div>
@@ -54,7 +54,7 @@
         <!-- Signup Screen -->
         <div id="signupScreen" class="screen">
             <div class="screen-header">
-                <button class="back-btn" data-target="welcomeScreen">←</button>
+                <button class="back-btn" onclick="document.getElementById('signupScreen').classList.remove('active'); document.getElementById('welcomeScreen').classList.add('active');">←</button>
                 <h2>Sign Up</h2>
                 <div></div>
             </div>
@@ -72,10 +72,10 @@
                     <label for="signupConfirmPassword">Confirm Password</label>
                     <input type="password" id="signupConfirmPassword" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="primary-btn full-width">Create Account</button>
+                <button type="submit" class="primary-btn full-width" onclick="window.startAuthgearLogin();">Create Account</button>
                 <p class="form-footer">
                     Already have an account? 
-                    <button type="button" class="text-link" data-target="loginScreen">Login</button>
+                    <button type="button" class="text-link" onclick="document.getElementById('signupScreen').classList.remove('active'); document.getElementById('loginScreen').classList.add('active');">Login</button>
                 </p>
             </form>
             <div id="signupError" class="error-message"></div>
