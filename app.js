@@ -1,95 +1,22 @@
-// GigsCourt App - Authgear Authentication Logic (Dual Platform)
+// GigsCourt App - Supabase Authentication Logic
+
+// ==================== Initialize Supabase ====================
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        storage: localStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false
+    }
+});
+
+console.log('✅ Supabase client initialized');
 
 // ==================== DOM Elements ====================
 const loadingOverlay = document.getElementById('loadingOverlay');
 const loginError = document.getElementById('loginError');
 const signupError = document.getElementById('signupError');
-
-// ==================== Authgear State ====================
-let authgear = null;
-let authgearReady = false;
-
-// ==================== Get All Action Buttons ====================
-function getActionButtons() {
-    return document.querySelectorAll('button[onclick*="startAuthgearLogin"]');
-}
-
-// ==================== Enable/Disable Buttons ====================
-function setButtonsEnabled(enabled) {
-    const buttons = getActionButtons();
-    buttons.forEach(btn => {
-        if (enabled) {
-            btn.removeAttribute('disabled');
-            btn.style.opacity = '1';
-        } else {
-            btn.setAttribute('disabled', 'disabled');
-            btn.style.opacity = '0.5';
-        }
-    });
-}
-
-// ==================== Initialize Authgear ====================
-async function initAuthgear() {
-    try {
-        console.log('🚀 Initializing Authgear...');
-        
-        if (isCapacitor) {
-            // Native Capacitor environment
-            const { Authgear } = await import('@authgear/capacitor');
-            authgear = new Authgear({
-                endpoint: AUTHGEAR_ENDPOINT,
-                clientID: AUTHGEAR_CLIENT_ID,
-                isThirdPartyWebviewMessageEnabled: false
-            });
-            
-            // *** REQUIRED: Configure the SDK ***
-            await authgear.configure({
-                endpoint: AUTHGEAR_ENDPOINT,
-                clientID: AUTHGEAR_CLIENT_ID,
-            });
-            
-            console.log('✅ Authgear initialized and configured (Capacitor SDK)');
-        } else {
-            // Web browser environment - use global authgear object
-            if (typeof window.authgear === 'undefined') {
-                throw new Error('Authgear Web SDK not loaded. Check script tag in index.html.');
-            }
-            
-            authgear = new window.authgear.Authgear({
-                endpoint: AUTHGEAR_ENDPOINT,
-                clientID: AUTHGEAR_CLIENT_ID
-            });
-            
-            // *** REQUIRED: Configure the SDK ***
-            await authgear.configure({
-                endpoint: AUTHGEAR_ENDPOINT,
-                clientID: AUTHGEAR_CLIENT_ID,
-            });
-            
-            console.log('✅ Authgear initialized and configured (Web SDK - Global)');
-        }
-        
-        authgearReady = true;
-        setButtonsEnabled(true);
-        
-        // Check existing session
-        const sessionState = await authgear.fetchSessionState();
-        if (sessionState === 'AUTHENTICATED') {
-            const userInfo = await authgear.fetchUserInfo();
-            console.log('User already authenticated:', userInfo);
-            alert(`Welcome back ${userInfo.email || 'User'}! Onboarding screen coming in Phase 2.`);
-        }
-    } catch (error) {
-        console.error('❌ Authgear initialization failed:', error);
-        console.error('--- Full Error Object ---');
-        console.error(error);
-        if (error.cause) {
-            console.error('--- Error Cause ---');
-            console.error(error.cause);
-        }
-        alert('Failed to initialize authentication. Please check your connection and restart the app.');
-    }
-}
 
 // ==================== Helper Functions ====================
 function showLoading(message = 'Please wait...') {
@@ -102,44 +29,121 @@ function hideLoading() {
     if (loadingOverlay) loadingOverlay.classList.remove('active');
 }
 
-// ==================== Global Auth Function ====================
-window.startAuthgearLogin = async function() {
-    if (!authgearReady || !authgear) {
-        alert('Authentication service is still loading. Please wait a moment.');
+function navigateTo(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(screenId);
+    if (target) target.classList.add('active');
+}
+
+// ==================== Check Existing Session ====================
+async function checkSession() {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (session) {
+        console.log('User already logged in:', session.user.email);
+        alert(`Welcome back ${session.user.email}! Onboarding screen coming in Phase 2.`);
+    }
+}
+
+// Listen for auth state changes
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN') {
+        console.log('User signed in:', session.user.email);
+    } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
+    }
+});
+
+// Check session on load
+checkSession();
+
+// ==================== Global Signup Handler ====================
+window.handleSignup = async function() {
+    const email = document.getElementById('signupEmail')?.value.trim();
+    const password = document.getElementById('signupPassword')?.value;
+    const confirmPassword = document.getElementById('signupConfirmPassword')?.value;
+    const errorEl = document.getElementById('signupError');
+    
+    if (!email || !password) {
+        if (errorEl) errorEl.textContent = 'Please enter both email and password';
         return;
     }
     
-    showLoading('Opening secure login...');
-    if (loginError) loginError.textContent = '';
-    if (signupError) signupError.textContent = '';
+    if (password.length < 6) {
+        if (errorEl) errorEl.textContent = 'Password must be at least 6 characters';
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        if (errorEl) errorEl.textContent = 'Passwords do not match';
+        return;
+    }
+    
+    showLoading('Creating your account...');
+    if (errorEl) errorEl.textContent = '';
     
     try {
-        await authgear.authenticate({
-            redirectUri: REDIRECT_URI,
-            uiLocales: ['en'],
-            colorScheme: 'light'
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
         });
         
-        const userInfo = await authgear.fetchUserInfo();
-        console.log('Authentication successful:', userInfo);
-        alert(`Welcome ${userInfo.email || 'User'}! Onboarding screen coming in Phase 2.`);
+        if (error) throw error;
+        
+        if (data.user) {
+            alert('Account created! Please check your email to verify your account, then log in.');
+            document.getElementById('signupForm')?.reset();
+            navigateTo('loginScreen');
+        }
         
     } catch (error) {
-        console.error('Authentication error:', error);
-        if (error.message !== 'Cancel') {
-            if (loginError) loginError.textContent = 'Login failed. Please try again.';
-            if (signupError) signupError.textContent = 'Signup failed. Please try again.';
+        console.error('Signup error:', error);
+        if (errorEl) errorEl.textContent = error.message || 'Signup failed. Please try again.';
+    } finally {
+        hideLoading();
+    }
+};
+
+// ==================== Global Login Handler ====================
+window.handleLogin = async function() {
+    const email = document.getElementById('loginEmail')?.value.trim();
+    const password = document.getElementById('loginPassword')?.value;
+    const errorEl = document.getElementById('loginError');
+    
+    if (!email || !password) {
+        if (errorEl) errorEl.textContent = 'Please enter both email and password';
+        return;
+    }
+    
+    showLoading('Logging in...');
+    if (errorEl) errorEl.textContent = '';
+    
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+        
+        if (error) throw error;
+        
+        if (data.user) {
+            console.log('Login successful:', data.user.email);
+            alert(`Welcome ${data.user.email}! Onboarding screen coming in Phase 2.`);
+            document.getElementById('loginForm')?.reset();
+            navigateTo('welcomeScreen');
+        }
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        if (error.message?.includes('Email not confirmed')) {
+            if (errorEl) errorEl.textContent = 'Please verify your email address before logging in.';
+        } else if (error.message?.includes('Invalid login credentials')) {
+            if (errorEl) errorEl.textContent = 'Incorrect email or password.';
+        } else {
+            if (errorEl) errorEl.textContent = error.message || 'Login failed. Please try again.';
         }
     } finally {
         hideLoading();
     }
 };
 
-// ==================== Start Initialization ====================
-// Disable buttons immediately
-setButtonsEnabled(false);
-
-// Initialize Authgear
-initAuthgear();
-
-console.log('GigsCourt Authgear module loaded');
+console.log('✅ GigsCourt Supabase auth module loaded');
