@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-26  # Runner with Xcode 26.4.1 [citation:1][citation:4]
+    runs-on: macos-26  # Runner with Xcode 26.4.1
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,14 +24,17 @@ jobs:
       - name: Add iOS platform
         run: npx cap add ios
       
-      - name: Copy Firebase config and entitlements
-        run: |
-          mkdir -p ios/App/App
-          cp GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
-          cp App.entitlements ios/App/App/App.entitlements
-      
       - name: Sync Capacitor
         run: npx cap sync ios
+      
+      - name: Configure iOS URL Scheme for Authgear
+        run: |
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.gigscourt.app" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string com.gigscourt.app" ios/App/App/Info.plist || true
+          echo "✅ Custom URL scheme configured for Authgear"
       
       - name: Build unsigned IPA
         run: |
