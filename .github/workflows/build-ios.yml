@@ -29,39 +29,7 @@ jobs:
           mkdir -p ios/App/App
           cp GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
           cp App.entitlements ios/App/App/App.entitlements
-
-      - name: Create Podfile with required post_install hook
-        run: |
-          cd ios/App
-          cat > Podfile << 'EOF'
-          platform :ios, '15.0'
-          use_frameworks!
-
-          target 'App' do
-            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
-            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-            pod 'CapacitorFirebaseAuthentication', :path => '../../node_modules/@capacitor-firebase/authentication'
-          end
-
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-                if target.respond_to?(:product_type) and target.product_type == "com.apple.product-type.bundle"
-                  config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-                end
-              end
-            end
-          end
-          EOF
-
-      - name: Nuclear Clean and Pod Install
-        run: |
-          cd ios/App
-          rm -rf Pods Podfile.lock
-          pod cache clean --all
-          pod install --repo-update
-
+      
       - name: Sync Capacitor
         run: npx cap sync ios
       
